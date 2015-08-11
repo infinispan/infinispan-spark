@@ -145,6 +145,10 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
          override def getValue(mn: ModelNode): Int = mn.asInt()
       }
 
+      implicit object ModelNodeResultUnit extends ModelNodeResult[Unit] {
+         override def getValue(mn: ModelNode): Unit = {}
+      }
+
    }
 
    import ModelNodeResult._
@@ -154,10 +158,10 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    private def getManagementPort = if (portOffSet == 0) ManagementPort else ManagementPort + portOffSet
 
    def waitForNumberOfMembers(members: Int): Unit =
-      waitForServerAttribute[Int](s"/subsystem=$InfinispanSubsystem/cache-container=clustered", "cluster-size", _ == members)
+      waitForServerOperationResult[Int](s"/subsystem=$InfinispanSubsystem/cache-container=clustered:read-attribute(name=cluster-size)", _ == members)
 
    def waitForLocalCacheManager(): Unit =
-      waitForServerAttribute[String](s"/subsystem=$InfinispanSubsystem/cache-container=local", "cache-manager-status", _ == "RUNNING")
+      waitForServerOperationResult[String](s"/subsystem=$InfinispanSubsystem/cache-container=local:read-attribute(name=cache-manager-status)", _ == "RUNNING")
 
    def addLocalCache(cacheName: String) = {
       addCache("local", cacheName, CacheType.LOCAL)
@@ -172,27 +176,48 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    }
 
    def cacheExists(name: String, cacheContainer: String, cacheType: CacheType.Value): Boolean = {
-      val caches = readAttribute[String](s"/subsystem=$InfinispanSubsystem/cache-container=$cacheContainer/", "defined-cache-names")
+      val caches = executeOperation[String](s"/subsystem=$InfinispanSubsystem/cache-container=$cacheContainer:read-attribute(name=defined-cache-names)")
       caches.exists(_.contains(name))
    }
 
    def addCache(cacheContainer: String, cacheName: String, cacheType: CacheType.Value): Unit = {
+      val base = s"/subsystem=$InfinispanSubsystem/cache-container=$cacheContainer"
+      def addConfiguration() = {
+         val baseParams = "statistics=true,start=EAGER"
+         val params = if (cacheType != CacheType.LOCAL) s"$baseParams,mode=SYNC" else baseParams
+         executeOperation[Unit](s"$base/configurations=CONFIGURATIONS/$cacheType-configuration=$cacheName:add($params)")
+      }
+      def addCache() = {
+         executeOperation[Unit](s"$base/$cacheType=$cacheName:add(configuration=$cacheName)")
+      }
       val exists = cacheExists(cacheName, cacheContainer, cacheType)
       if (!exists) {
-         val pathAddress = PathAddress.pathAddress(SUBSYSTEM, InfinispanSubsystem)
-                 .append("cache-container", cacheContainer)
-                 .append(cacheType.toString, cacheName)
-         val op: ModelNode = new ModelNode
-         op.get(OP).set(ADD)
-         op.get(OP_ADDR).set(pathAddress.toModelNode)
-         op.get("start").set("EAGER")
-         if (cacheType != CacheType.LOCAL) {
-            op.get("mode").set("SYNC")
-         }
-         val resp: ModelNode = client.execute(op)
-         if (!(SUCCESS == resp.get(OUTCOME).asString)) {
-            throw new IllegalArgumentException(resp.asString)
-         }
+         addConfiguration()
+         addCache()
+      }
+   }
+
+   private def executeOperation[T](command: String)(implicit ev: ModelNodeResult[T]): Option[T] = {
+      val Array(pathString, operationString) = command.split(":")
+      val address = PathAddress.parseCLIStyleAddress(pathString)
+      if (operationString.isEmpty) throw new IllegalArgumentException(s"No operation provided with $command")
+      val regex = """(.*)\((.*)\)""".r
+      val regex(opName, params) = operationString
+
+      val op = new ModelNode
+      op.get(OP).set(opName)
+      op.get(OP_ADDR).set(address.toModelNode)
+      params.split(",").foreach { s =>
+         val Array(k, v) = s.split("=")
+         op.get(k).set(v)
+      }
+      val resp = client.execute(op)
+      if (!(SUCCESS == resp.get(OUTCOME).asString)) {
+         throw new Exception(s"Error executing operation $command: ${resp.asString()}")
+      }
+      else {
+         val modelNode = resp.get(RESULT)
+         Some(ev.getValue(modelNode))
       }
    }
 
@@ -211,25 +236,10 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       }
    }
 
-   private def readAttribute[T](path: String, name: String)(implicit ev: ModelNodeResult[T]): Option[T] = {
-      val pathAddress = PathAddress.parseCLIStyleAddress(path)
-      val op = new ModelNode
-      op.get(OP).set(READ_ATTRIBUTE_OPERATION)
-      op.get(OP_ADDR).set(pathAddress.toModelNode)
-      op.get("name").set(name)
-      val res = client.execute(op)
-      if (res.get(OUTCOME).asString() == SUCCESS) {
-         val modelNode = res.get(RESULT)
-         Some(ev.getValue(modelNode))
-      } else {
-         None
-      }
-   }
-
-   private def waitForServerAttribute[T](path: String, name: String, condition: T => Boolean)(implicit ev: ModelNodeResult[T]): Unit = {
+   private def waitForServerOperationResult[T](operation: String, condition: T => Boolean)(implicit ev: ModelNodeResult[T]): Unit = {
       retry {
-         val attribute = readAttribute[T](path, name)(ev)
-         attribute.exists(condition)
+         val result = executeOperation[T](operation)(ev)
+         result.exists(condition)
       }
    }
 }

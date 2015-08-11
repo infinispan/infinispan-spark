@@ -17,7 +17,7 @@
 ### Compatibility
 
 * Apache Spark 1.4 or above
-* Infinispan 8.0.0.Beta2 
+* Infinispan 8.0.0.Beta3 
 * Java 8  
 * Scala 2.10/2.11
 

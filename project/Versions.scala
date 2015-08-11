@@ -1,5 +1,5 @@
 object Versions {
-   val infinispanVersion = "8.0.0.Beta2"
+   val infinispanVersion = "8.0.0.Beta3"
    val sparkVersion = "1.4.0"
    val scalaTestVersion = "2.2.5"
    val wildFlyControllerVersion = "1.0.0.CR6"
