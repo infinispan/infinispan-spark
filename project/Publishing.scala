@@ -51,6 +51,7 @@ object Publishing {
       organizationName := "JBoss, a division of Red Hat",
       organizationHomepage := Some(url("http://www.jboss.org")),
       description := "Infinispan Spark Connector",
+      homepage := Some(url("http://www.infinispan.org")),
       credentialsSetting,
       publishMavenStyle := true,
       publishTo <<= isSnapshot { (snapshot) => Some(if (snapshot) snapshotRepo else releaseRepo) },
