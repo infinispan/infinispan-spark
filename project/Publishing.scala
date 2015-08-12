@@ -39,7 +39,7 @@ object Publishing {
       credentials ++= (for {
          user <- sys.env.get("NEXUS_USER")
          pass <- sys.env.get("NEXUS_PASS")
-      } yield Credentials("Nexus Repository Manager", "repository.jboss.org", user, pass)).toSeq
+      } yield Credentials("Sonatype Nexus Repository Manager", "repository.jboss.org", user, pass)).toSeq
 
 
    def settings: Seq[Setting[_]] = Seq(

@@ -14,7 +14,7 @@
 * Java API
 
 
-### Compatibility
+#### Compatibility
 
 * Apache Spark 1.4 or above
 * Infinispan 8.0.0.Beta3 
@@ -29,15 +29,17 @@ Sbt:
 
 Maven:
 
+Scala 2.10  
 ```
-(Scala 2.10)
 <dependency>
     <groupId>org.infinispan</groupId>
     <artifactId>infinispan-spark_2.10</artifactId>
     <version>0.1-SNAPSHOT</scope>
 </dependency>
+```
 
-(Scala 2.11)
+Scala 2.11      
+```
 <dependency>
     <groupId>org.infinispan</groupId>
     <artifactId>infinispan-spark_2.11</artifactId>
@@ -49,8 +51,26 @@ Maven:
 
 Package for Scala 2.11: ```./sbt package```  
 Package for Scala 2.10 and 2.11: ```./sbt +package```  
-Create examples uberjar: ```./sbt examples/assembly``` 
+Create examples uberjar: ```./sbt examples/assembly```  
 Run all tests: ```./sbt +test```
+
+#### Publishing
+
+To publish to nexus, first export the credentials as environment variables:
+
+```
+export NEXUS_USER=...   
+export NEXUS_PASS=...
+```
+
+#### Publishing a SNAPSHOT
+
+``` ./sbt +publish ```
+
+#### Releasing
+
+``` ./sbt +release ```
+
 
 
 
