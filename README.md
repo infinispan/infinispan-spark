@@ -69,7 +69,7 @@ export NEXUS_PASS=...
 
 #### Releasing
 
-``` ./sbt +release ```
+``` ./sbt release ```
 
 
 

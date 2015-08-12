@@ -1,5 +1,6 @@
 import sbt.Keys._
 import sbt._
+import sbtrelease.ReleasePlugin.autoImport._
 
 object Publishing {
 
@@ -41,8 +42,11 @@ object Publishing {
          pass <- sys.env.get("NEXUS_PASS")
       } yield Credentials("Sonatype Nexus Repository Manager", "repository.jboss.org", user, pass)).toSeq
 
+   lazy val releaseSettings = Seq(
+      releaseCrossBuild := true
+   )
 
-   def settings: Seq[Setting[_]] = Seq(
+   def baseSettings: Seq[Setting[_]] = Seq(
       organization := "org.infinispan",
       organizationName := "JBoss, a division of Red Hat",
       organizationHomepage := Some(url("http://www.jboss.org")),
@@ -53,6 +57,8 @@ object Publishing {
       publishArtifact in Test := false,
       pomExtra := scm ++ developer ++ license ++ issues
    )
+
+   def settings = baseSettings ++ releaseSettings
 
 
 }
