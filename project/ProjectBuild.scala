@@ -57,6 +57,10 @@ object ProjectBuild extends Build {
          else
             baseFlags ++ Seq("-Xlint:_,-nullary-unit", "-Ywarn-unused", "-Ywarn-unused-import")
       },
+      resolvers ++= Seq(
+          "JBoss Releases" at "https://repository.jboss.org/nexus/content/repositories/releases/",
+          "JBoss Snapshots" at "https://repository.jboss.org/nexus/content/repositories/snapshots/"
+      ),
       test in assembly := {},
       parallelExecution in Test := false,
       parallelExecution in Global := false
