@@ -34,7 +34,7 @@ Scala 2.10
 <dependency>
     <groupId>org.infinispan</groupId>
     <artifactId>infinispan-spark_2.10</artifactId>
-    <version>0.1</scope>
+    <version>0.1</version>
 </dependency>
 ```
 
@@ -43,7 +43,7 @@ Scala 2.11
 <dependency>
     <groupId>org.infinispan</groupId>
     <artifactId>infinispan-spark_2.11</artifactId>
-    <version>0.1</scope>
+    <version>0.1</version>
 </dependency>
 ```
 
