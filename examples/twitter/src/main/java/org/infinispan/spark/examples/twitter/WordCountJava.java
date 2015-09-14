@@ -53,7 +53,7 @@ public class WordCountJava {
       JavaSparkContext javaSparkContext = new JavaSparkContext(conf);
 
       // Extract the value of the spark master to reuse in the infinispan configuration
-      String master = javaSparkContext.getConf().get("spark.master").replace("spark://", "").replaceAll(":.*", "");
+      String master = javaSparkContext.getConf().get("spark.master").replace("spark://", "").replace("mesos://", "").replaceAll(":.*", "");
 
       // Populate infinispan properties
       Properties infinispanProperties = new Properties();

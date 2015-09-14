@@ -35,7 +35,7 @@ object StreamConsumerScala {
 
       val conf = new SparkConf().setAppName("spark-infinispan-stream-consumer-scala")
       val sparkContext = new SparkContext(conf)
-      val master = sparkContext.getConf.get("spark.master").replace("spark://", "").replaceAll(":.*", "")
+      val master = sparkContext.getConf.get("spark.master").replace("spark://", "").replace("mesos://", "").replaceAll(":.*", "")
 
       val streamingContext = new StreamingContext(sparkContext, Seconds(1))
 

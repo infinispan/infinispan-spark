@@ -18,7 +18,7 @@ object WordCountScala {
 
       val conf = new SparkConf().setAppName("spark-infinispan-wordcount-scala")
       val sc = new SparkContext(conf)
-      val master = sc.getConf.get("spark.master").replace("spark://", "").replaceAll(":.*", "")
+      val master = sc.getConf.get("spark.master").replace("spark://", "").replace("mesos://", "").replaceAll(":.*", "")
 
       val stopWords =
          fromInputStream(classOf[WordCountJava].getClassLoader.getResourceAsStream("stopWords.txt")).getLines().toSet

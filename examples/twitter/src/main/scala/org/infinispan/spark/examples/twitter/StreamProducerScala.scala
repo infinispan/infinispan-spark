@@ -15,7 +15,7 @@ import org.infinispan.spark.stream._
 object StreamProducerScala {
    def main(args: Array[String]) {
       if (args.length < 4) {
-         System.out.println("Usage: StreamConsumerScala <twitter4j.oauth.consumerKey> <twitter4j.oauth.consumerSecret> <twitter4j.oauth.accessToken> twitter4j.oauth.accessTokenSecret")
+         System.out.println("Usage: StreamProducerScala <twitter4j.oauth.consumerKey> <twitter4j.oauth.consumerSecret> <twitter4j.oauth.accessToken> twitter4j.oauth.accessTokenSecret")
          System.exit(1)
       }
 
@@ -27,7 +27,7 @@ object StreamProducerScala {
 
       val conf = new SparkConf().setAppName("spark-infinispan-stream-consumer-scala")
       val sparkContext = new SparkContext(conf)
-      val master = sparkContext.getConf.get("spark.master").replace("spark://", "").replaceAll(":.*", "")
+      val master = sparkContext.getConf.get("spark.master").replace("spark://", "").replace("mesos://", "").replaceAll(":.*", "")
 
       val streamingContext = new StreamingContext(sparkContext, Seconds(1))
 
