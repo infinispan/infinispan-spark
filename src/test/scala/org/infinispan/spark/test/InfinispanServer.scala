@@ -182,22 +182,48 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 
    def addCache(cacheContainer: String, cacheName: String, cacheType: CacheType.Value): Unit = {
       val base = s"/subsystem=$InfinispanSubsystem/cache-container=$cacheContainer"
-      def addConfiguration() = {
+      val addConfigurationOp = {
          val baseParams = "statistics=true,start=EAGER"
          val params = if (cacheType != CacheType.LOCAL) s"$baseParams,mode=SYNC" else baseParams
-         executeOperation[Unit](s"$base/configurations=CONFIGURATIONS/$cacheType-configuration=$cacheName:add($params)")
+         s"$base/configurations=CONFIGURATIONS/$cacheType-configuration=$cacheName:add($params)"
       }
-      def addCache() = {
-         executeOperation[Unit](s"$base/$cacheType=$cacheName:add(configuration=$cacheName)")
-      }
+      val addCacheOp = s"$base/$cacheType=$cacheName:add(configuration=$cacheName)"
+
       val exists = cacheExists(cacheName, cacheContainer, cacheType)
       if (!exists) {
-         addConfiguration()
-         addCache()
+         executeOperation[Unit](composeCommands(addConfigurationOp, addCacheOp))
       }
    }
 
-   private def executeOperation[T](command: String)(implicit ev: ModelNodeResult[T]): Option[T] = {
+   private def composeModelNodes(commands: ModelNode*): ModelNode = {
+      val composite = new ModelNode()
+      composite.get(OP).set(COMPOSITE)
+      composite.get(OP_ADDR).setEmptyList()
+      val steps = composite.get(STEPS)
+      commands.foreach { op =>
+         val newOp = steps.add()
+         newOp.set(op)
+      }
+      composite
+   }
+
+   private def composeCommands(commands: String*): ModelNode = composeModelNodes(commands.map(toModelNode):_*)
+
+   private def executeOperation[T](op: ModelNode)(implicit ev: ModelNodeResult[T]): Option[T] = {
+      val resp = client.execute(op)
+      if (!(SUCCESS == resp.get(OUTCOME).asString)) {
+         throw new Exception(s"Error executing operation ${op.toString}: ${resp.asString()}")
+      }
+      else {
+         val modelNode = resp.get(RESULT)
+         Some(ev.getValue(modelNode))
+      }
+   }
+
+   private def executeOperation[T](command: String)(implicit ev: ModelNodeResult[T]): Option[T] =
+      executeOperation[T](toModelNode(command))
+
+   private def toModelNode(command: String): ModelNode = {
       val Array(pathString, operationString) = command.split(":")
       val address = PathAddress.parseCLIStyleAddress(pathString)
       if (operationString.isEmpty) throw new IllegalArgumentException(s"No operation provided with $command")
@@ -211,14 +237,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
          val Array(k, v) = s.split("=")
          op.get(k).set(v)
       }
-      val resp = client.execute(op)
-      if (!(SUCCESS == resp.get(OUTCOME).asString)) {
-         throw new Exception(s"Error executing operation $command: ${resp.asString()}")
-      }
-      else {
-         val modelNode = resp.get(RESULT)
-         Some(ev.getValue(modelNode))
-      }
+      op
    }
 
    @tailrec
