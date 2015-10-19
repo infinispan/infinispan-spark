@@ -71,6 +71,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    val ClusteredConfig = "clustered.xml"
    val PortOffsetConfig = "-Djboss.socket.binding.port-offset"
    val StackConfig = "-Djboss.default.jgroups.stack=tcp"
+   val TimeoutConfig ="-Djgroups.join_timeout=1000"
    val Protocol = "http-remoting"
    val InfinispanSubsystem = "datagrid-infinispan"
    val Host = "localhost"
@@ -94,13 +95,14 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       val cmd = mutable.ListBuffer[String](Paths.get(location, BinFolder, LaunchScript).toString)
       if (clustered) {
          cmd += s"-c=$ClusteredConfig"
+         cmd += StackConfig
+         cmd += TimeoutConfig
       }
       cmd += s"$NameNodeConfig=$name"
       cmd += s"$LogDirConfig=$logDir/$name"
       if (portOffSet > 0) {
          cmd += s"$PortOffsetConfig=$portOffSet"
       }
-      cmd += StackConfig
       launcher = Process(cmd).run(new ProcessLogger {
          override def out(s: => String): Unit = {}
 
