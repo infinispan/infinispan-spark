@@ -4,8 +4,9 @@ import java.net.InetSocketAddress
 import java.util.Properties
 
 import org.apache.spark.rdd.RDD
+import org.apache.spark.scheduler.{SparkListener, SparkListenerJobEnd}
 import org.apache.spark.{Partition, SparkContext, TaskContext}
-import org.infinispan.client.hotrod.RemoteCacheManager
+import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.spark._
 
@@ -18,6 +19,15 @@ class InfinispanRDD[K, V](@transient val sc: SparkContext,
                           val configuration: Properties,
                           @transient val splitter: Splitter = new PerServerSplitter)
         extends RDD[(K, V)](sc, Nil) {
+
+   @transient lazy val remoteCache: RemoteCache[K,V] = {
+      val remoteCacheManager = new RemoteCacheManager(new ConfigurationBuilder().withProperties(configuration).pingOnStartup(true).build())
+      sc.addSparkListener(new SparkListener {
+         override def onJobEnd(jobEnd: SparkListenerJobEnd): Unit = remoteCache.stop()
+      })
+      val optCacheName = Option(configuration.getProperty(InfinispanRDD.CacheName))
+      optCacheName.map(name => remoteCacheManager.getCache[K,V](name)).getOrElse(remoteCacheManager.getCache[K,V])
+   }
 
    override def compute(split: Partition, context: TaskContext): Iterator[(K, V)] = {
       logInfo(s"Computing partition $split")
@@ -41,14 +51,13 @@ class InfinispanRDD[K, V](@transient val sc: SparkContext,
       new InfinispanIterator(closeableIterator, context)
    }
 
+   override def count(): Long = remoteCache.size()
+
    override protected def getPreferredLocations(split: Partition): Seq[String] =
       Seq(split.asInstanceOf[InfinispanPartition].location.address.asInstanceOf[InetSocketAddress].getHostString)
 
    override protected def getPartitions: Array[Partition] = {
-      val remoteCacheManager = new RemoteCacheManager(new ConfigurationBuilder().withProperties(configuration).pingOnStartup(true).build())
-      val optCacheName = Option(configuration.getProperty(InfinispanRDD.CacheName))
-      val cache = optCacheName.map(name => remoteCacheManager.getCache(name)).getOrElse(remoteCacheManager.getCache)
-      val segmentsByServer = cache.getCacheTopologyInfo
+      val segmentsByServer = remoteCache.getCacheTopologyInfo
       splitter.split(segmentsByServer, configuration)
    }
 }
