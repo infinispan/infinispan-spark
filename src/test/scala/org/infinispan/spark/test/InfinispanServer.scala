@@ -35,10 +35,13 @@ object CacheType extends Enumeration {
 private[test] class Cluster private(size: Int, location: String) {
    private val _servers = mutable.ListBuffer[InfinispanServer]()
    val CacheContainer = "clustered"
+   @volatile private var started = false
 
    Runtime.getRuntime.addShutdownHook(new Thread {
       override def run(): Unit = Try(shutDown())
    })
+
+   def isStarted = started
 
    def startAndWait(duration: Duration) = {
       val servers = for (i <- 0 to size - 1) yield {
@@ -46,10 +49,15 @@ private[test] class Cluster private(size: Int, location: String) {
       }
       _servers ++= servers
       val futureServers = _servers.map(s => Future(s.startAndWaitForCluster(_servers.size)))
-      Await.ready(Future.sequence(futureServers), duration)
+      val outcome = Future.sequence(futureServers)
+      Await.ready(outcome, duration)
+      outcome.value match {
+         case Some(Failure(e)) => throw new RuntimeException(e)
+         case _ => started = true
+      }
    }
 
-   def shutDown() = _servers.par.foreach(_.shutDown())
+   def shutDown() = if(started) _servers.par.foreach(_.shutDown())
 
    def getFirstServer = _servers.head
 
@@ -78,7 +86,15 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    val ShutDownOp = "shutdown"
    val ManagementPort = 9990
    val HotRodPort = 11222
+   @volatile private var started = false
 
+   private lazy val serverHome = if (Paths.get(location).toFile.exists()) location
+   else {
+      Option(getClass.getResource(location)).map(_.getPath) match {
+         case None => throw new IllegalArgumentException(s"Server not found in location $location.")
+         case Some(c) => c
+      }
+   }
    lazy val client = ModelControllerClient.Factory.create(Protocol, InetAddress.getByName(Host), getManagementPort)
    lazy val remoteCacheManager = new RemoteCacheManager(new ConfigurationBuilder().addServer().host(Host).port(getHotRodPort).pingOnStartup(true).build)
 
@@ -89,10 +105,10 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    })
 
    def start() = {
-      val logDir = Paths.get(location, "logs")
-      val launch = Paths.get(location, BinFolder, LaunchScript)
+      val logDir = Paths.get(serverHome, "logs")
+      val launch = Paths.get(serverHome, BinFolder, LaunchScript)
       new File(launch.toString).setExecutable(true)
-      val cmd = mutable.ListBuffer[String](Paths.get(location, BinFolder, LaunchScript).toString)
+      val cmd = mutable.ListBuffer[String](Paths.get(serverHome, BinFolder, LaunchScript).toString)
       if (clustered) {
          cmd += s"-c=$ClusteredConfig"
          cmd += StackConfig
@@ -110,7 +126,10 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 
          override def buffer[T](f: => T): T = f
       })
+      started = true
    }
+
+   def isStarted = started
 
    def startAndWaitForCluster(size: Int) = {
       start()
@@ -131,6 +150,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
          throw new Exception(s"Failure to stop server $name")
       }
       client.close()
+      started = false
    }
 
    private[this] object ModelNodeResult {
@@ -266,9 +286,9 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 }
 
 object SingleNode {
-   private val server: InfinispanServer = new InfinispanServer(getClass.getResource("/infinispan-server/").getPath, "server1")
+   private val server: InfinispanServer = new InfinispanServer("/infinispan-server/", "server1")
 
-   def start() = server.startAndWaitForLocalCacheManager()
+   def start() = if(!server.isStarted) server.startAndWaitForLocalCacheManager()
 
    def shutDown() = server.shutDown()
 
@@ -278,9 +298,9 @@ object SingleNode {
 }
 
 object Cluster {
-   private val cluster: Cluster = new Cluster(3, getClass.getResource("/infinispan-server/").getPath)
+   private val cluster: Cluster = new Cluster(3, "/infinispan-server/")
 
-   def start() = cluster.startAndWait(60 seconds)
+   def start() = if(!cluster.isStarted) cluster.startAndWait(60 seconds)
 
    def shutDown() = cluster.shutDown()
 

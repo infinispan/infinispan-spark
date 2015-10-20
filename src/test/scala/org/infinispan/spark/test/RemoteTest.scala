@@ -40,6 +40,7 @@ trait SingleServer extends RemoteTest with BeforeAndAfterAll {
    override def getServerPort = SingleNode.getServerPort
 
    override protected def beforeAll(): Unit = {
+      SingleNode.start()
       remoteCache = SingleNode.getOrCreateCache(getCacheName)
       remoteCache.clear()
       super.beforeAll()
@@ -47,12 +48,19 @@ trait SingleServer extends RemoteTest with BeforeAndAfterAll {
 
 }
 
-trait MultipleServers extends RemoteTest {
+trait MultipleServers extends RemoteTest with BeforeAndAfterAll {
+   this: Suite =>
+
    def getCacheType: CacheType.Value
 
    override def getTargetCache[K, V] = Cluster.getOrCreateCache(getCacheName, getCacheType).asInstanceOf[RemoteCache[K, V]]
 
    override def getServerPort = Cluster.getFirstServerPort
+
+   override protected def beforeAll(): Unit = {
+      Cluster.start()
+      super.beforeAll()
+   }
 }
 
 
