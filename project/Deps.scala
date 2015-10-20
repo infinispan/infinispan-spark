@@ -4,6 +4,7 @@ import Versions._
 object Deps {
    // Core deps
    val hotRodClient = "org.infinispan" % "infinispan-client-hotrod" % infinispanVersion
+   val queryDSL = "org.infinispan" % "infinispan-query-dsl" % infinispanVersion
    val jcip = "net.jcip" % "jcip-annotations" % jcipAnnotationsVersion
    val sparkCore = "org.apache.spark" %% "spark-core" % sparkVersion % "provided"
    val sparkSQL = "org.apache.spark" %% "spark-sql" % sparkVersion % "provided"
