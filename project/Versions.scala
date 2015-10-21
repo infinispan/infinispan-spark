@@ -1,5 +1,6 @@
 object Versions {
    val infinispanVersion = "8.1.0.Beta1"
+   val protoStreamVersion = "3.0.4.Final"
    val sparkVersion = "1.4.0"
    val scalaTestVersion = "2.2.5"
    val junitVersion = "4.11"
