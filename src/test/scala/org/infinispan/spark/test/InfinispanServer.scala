@@ -1,6 +1,8 @@
 package org.infinispan.spark.test
 
 import java.io.File
+import java.lang.management.ManagementFactory
+import java.net.InetAddress
 import java.nio.file.Paths
 
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
@@ -112,10 +114,13 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    })
 
    def start() = {
+      val args = ManagementFactory.getRuntimeMXBean.getInputArguments
+      val isDebug = args.contains("-Dserver-debug")
       val logDir = Paths.get(serverHome, "logs")
       val launch = Paths.get(serverHome, BinFolder, LaunchScript)
       new File(launch.toString).setExecutable(true)
       val cmd = mutable.ListBuffer[String](Paths.get(serverHome, BinFolder, LaunchScript).toString)
+      if(isDebug) cmd += "--debug"
       if (clustered) {
          cmd += s"-c=$ClusteredConfig"
          cmd += StackConfig
