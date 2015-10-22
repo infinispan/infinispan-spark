@@ -15,7 +15,7 @@ object ProjectBuild extends Build {
          .settings(
             moduleName := "infinispan-spark",
             libraryDependencies ++= Seq(sparkCore, sparkStreaming, sparkSQL, hotRodClient, queryDSL, jcip,
-                                        junit, scalaTest, infinispanServerZip, wildflyController, wildflyControllerClient),
+                                        junit, scalaTest, scalaDMR, infinispanServerZip),
             extractServer := {
                val report = update.value
                val deps = report.matching(artifactFilter(name = "infinispan-server-build", extension = "zip"))
