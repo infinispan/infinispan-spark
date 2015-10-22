@@ -14,8 +14,7 @@ object Deps {
    val junit = "junit" % "junit" % junitVersion % "test"
    val scalaTest = "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
    val infinispanServerZip = "org.infinispan.server" % "infinispan-server-build" % infinispanVersion % "test" artifacts Artifact("infinispan-server-build", "zip", "zip")
-   val wildflyControllerClient = "org.wildfly.core" % "wildfly-controller-client" % wildFlyControllerVersion % "test"
-   val wildflyController = "org.wildfly.core" % "wildfly-controller" % wildFlyControllerVersion % "test"
+   val scalaDMR = "org.jboss" %% "dmr-repl" % scalaDMRVersion % "test"
 
    // Demo deps
    val twitter4jCore = "org.twitter4j" % "twitter4j-core" % twitter4jVersion
