@@ -1,18 +1,17 @@
 package org.infinispan.spark.test
 
 import java.io.File
-import java.net.InetAddress
 import java.nio.file.Paths
 
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
-import org.jboss.as.controller.PathAddress
-import org.jboss.as.controller.client.ModelControllerClient
 import org.jboss.as.controller.client.helpers.ClientConstants._
-import org.jboss.dmr.ModelNode
+import org.jboss.dmr.repl.{Client, Response}
+import org.jboss.dmr.scala.{ModelNode, _}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -32,7 +31,7 @@ object CacheType extends Enumeration {
 /**
  * A cluster of Infinispan Servers that can be managed together
  */
-private[test] class Cluster private(size: Int, location: String) {
+private[test] class Cluster(size: Int, location: String) {
    private val _servers = mutable.ListBuffer[InfinispanServer]()
    val CacheContainer = "clustered"
    @volatile private var started = false
@@ -57,13 +56,13 @@ private[test] class Cluster private(size: Int, location: String) {
       }
    }
 
-   def shutDown() = if(started) _servers.par.foreach(_.shutDown())
+   def shutDown() = if (started) _servers.par.foreach(_.shutDown())
 
    def getFirstServer = _servers.head
 
-   def obtainCache[K, V](name: String, cacheType: CacheType.Value): RemoteCache[K, V] = {
-      _servers.foreach(_.addCache(CacheContainer, name, cacheType))
-      getFirstServer.obtainRemoteCache(name, CacheContainer, cacheType).asInstanceOf[RemoteCache[K, V]]
+   def obtainCache[K, V](name: String, cacheType: CacheType.Value, extraConfigs: Option[ModelNode]): RemoteCache[K, V] = {
+      _servers.foreach(_.addCache(CacheContainer, name, cacheType, extraConfigs))
+      getFirstServer.obtainRemoteCache(name).asInstanceOf[RemoteCache[K, V]]
    }
 
 }
@@ -79,7 +78,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    val ClusteredConfig = "clustered.xml"
    val PortOffsetConfig = "-Djboss.socket.binding.port-offset"
    val StackConfig = "-Djboss.default.jgroups.stack=tcp"
-   val TimeoutConfig ="-Djgroups.join_timeout=1000"
+   val TimeoutConfig = "-Djgroups.join_timeout=1000"
    val Protocol = "http-remoting"
    val InfinispanSubsystem = "datagrid-infinispan"
    val Host = "localhost"
@@ -95,7 +94,15 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
          case Some(c) => c
       }
    }
-   lazy val client = ModelControllerClient.Factory.create(Protocol, InetAddress.getByName(Host), getManagementPort)
+   val client = {
+      new Client().connect(port = getManagementPort)
+   }
+
+   val DefaultCacheConfig = Map(
+      "statistics" -> "true",
+      "start" -> "eager"
+   )
+
    lazy val remoteCacheManager = new RemoteCacheManager(new ConfigurationBuilder().addServer().host(Host).port(getHotRodPort).pingOnStartup(true).build)
 
    private var launcher: Process = _
@@ -143,10 +150,8 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 
    def shutDown(): Unit = {
       launcher.destroy()
-      val op = new ModelNode
-      op.get(OP).set(ShutDownOp)
-      val res = client.execute(op)
-      if (!(res.get(OUTCOME).asString() == SUCCESS)) {
+      val res = client ! ModelNode(OP -> ShutDownOp)
+      if (res.isFailure) {
          throw new Exception(s"Failure to stop server $name")
       }
       client.close()
@@ -156,19 +161,19 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    private[this] object ModelNodeResult {
 
       trait ModelNodeResult[T] {
-         def getValue(mn: ModelNode): T
+         def getValue(mn: ModelNode): Option[T]
       }
 
       implicit object ModelNodeResultString extends ModelNodeResult[String] {
-         override def getValue(mn: ModelNode): String = mn.asString()
+         override def getValue(mn: ModelNode) = mn.asString
       }
 
       implicit object ModelNodeResultInt extends ModelNodeResult[Int] {
-         override def getValue(mn: ModelNode): Int = mn.asInt()
+         override def getValue(mn: ModelNode) = mn.asInt
       }
 
       implicit object ModelNodeResultUnit extends ModelNodeResult[Unit] {
-         override def getValue(mn: ModelNode): Unit = {}
+         override def getValue(mn: ModelNode) = None
       }
 
    }
@@ -180,86 +185,100 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    private def getManagementPort = if (portOffSet == 0) ManagementPort else ManagementPort + portOffSet
 
    def waitForNumberOfMembers(members: Int): Unit =
-      waitForServerOperationResult[Int](s"/subsystem=$InfinispanSubsystem/cache-container=clustered:read-attribute(name=cluster-size)", _ == members)
+      waitForServerOperationResult[Int](ModelNode() at ("subsystem" -> InfinispanSubsystem)/ ("cache-container" -> "clustered") op 'read_attribute('name -> "cluster-size"), _ == members)
 
    def waitForLocalCacheManager(): Unit =
-      waitForServerOperationResult[String](s"/subsystem=$InfinispanSubsystem/cache-container=local:read-attribute(name=cache-manager-status)", _ == "RUNNING")
+      waitForServerOperationResult[String](ModelNode() at ("subsystem" -> InfinispanSubsystem)/ ("cache-container" -> "local") op 'read_attribute('name -> "cache-manager-status"), _ == "RUNNING")
 
-   def addLocalCache(cacheName: String) = {
-      addCache("local", cacheName, CacheType.LOCAL)
+   def addLocalCache(cacheName: String, config: Option[ModelNode]) = {
+      addCache("local", cacheName, CacheType.LOCAL, config)
    }
 
-   def obtainNonClusteredCache(name: String) = obtainRemoteCache(name, "local", CacheType.LOCAL)
-
-   def obtainRemoteCache(name: String, cacheContainer: String, cacheType: CacheType.Value) = {
-      val existent = cacheExists(name, cacheContainer, cacheType)
-      if (!existent) addCache(cacheContainer, name, cacheType)
-      remoteCacheManager.getCache(name)
-   }
+   def obtainRemoteCache(name: String) = remoteCacheManager.getCache(name)
 
    def cacheExists(name: String, cacheContainer: String, cacheType: CacheType.Value): Boolean = {
-      val caches = executeOperation[String](s"/subsystem=$InfinispanSubsystem/cache-container=$cacheContainer:read-attribute(name=defined-cache-names)")
+      val op = ModelNode() at ("subsystem" -> InfinispanSubsystem) / ("cache-container" -> cacheContainer) op 'read_attribute (
+         'name -> "defined-cache-names"
+      )
+      val caches = executeOperation[String](op)
       caches.exists(_.contains(name))
    }
 
-   def addCache(cacheContainer: String, cacheName: String, cacheType: CacheType.Value): Unit = {
-      val base = s"/subsystem=$InfinispanSubsystem/cache-container=$cacheContainer"
-      val addConfigurationOp = {
-         val baseParams = "statistics=true,start=EAGER"
-         val params = if (cacheType != CacheType.LOCAL) s"$baseParams,mode=SYNC" else baseParams
-         s"$base/configurations=CONFIGURATIONS/$cacheType-configuration=$cacheName:add($params)"
-      }
-      val addCacheOp = s"$base/$cacheType=$cacheName:add(configuration=$cacheName)"
+   def addCache(cacheContainer: String, cacheName: String, cacheType: CacheType.Value, config: Option[ModelNode]): Unit = {
+      if (!cacheExists(cacheName, cacheContainer, cacheType)) {
+         val params = if (cacheType != CacheType.LOCAL)
+            createAddOpWithAttributes(DefaultCacheConfig + ("mode" -> "SYNC"))
+         else
+            createAddOpWithAttributes(DefaultCacheConfig)
 
-      val exists = cacheExists(cacheName, cacheContainer, cacheType)
-      if (!exists) {
-         executeOperation[Unit](composeCommands(addConfigurationOp, addCacheOp))
+         val cacheContainerPath = ("subsystem" -> InfinispanSubsystem) / ("cache-container" -> cacheContainer)
+         val configPath = cacheContainerPath / ("configurations" -> "CONFIGURATIONS") / (s"$cacheType-configuration" -> cacheName)
+
+         // Create empty cache configuration
+         val ops = ListBuffer(ModelNode() at configPath op params)
+
+         // Add custom config
+         config.foreach(ops += createInsertOperations(configPath, _))
+
+         // Create cache based on configuration
+         ops += ModelNode() at cacheContainerPath / (cacheType.toString -> cacheName) op 'add ('configuration -> cacheName)
+
+         executeOperation[Unit](ModelNode.composite(ops))
       }
    }
 
-   private def composeModelNodes(commands: ModelNode*): ModelNode = {
-      val composite = new ModelNode()
-      composite.get(OP).set(COMPOSITE)
-      composite.get(OP_ADDR).setEmptyList()
-      val steps = composite.get(STEPS)
-      commands.foreach { op =>
-         val newOp = steps.add()
-         newOp.set(op)
-      }
-      composite
-   }
+   private def toParam(m: Map[String, Any]) = m.toArray.map { case (k, v) => (Symbol(k), v) }
 
-   private def composeCommands(commands: String*): ModelNode = composeModelNodes(commands.map(toModelNode):_*)
+   private def createAddOpWithAttributes(m: Map[String, Any]): Operation = Operation('add)(toParam(m): _*)
+
+   // Create optimal number of ops to add a model node to a specific path
+   private def createInsertOperations(basePath: Address, modelNode: ModelNode): ModelNode = {
+      val opsByPath = mutable.LinkedHashMap[ListBuffer[String],mutable.Map[String,Any]]()
+      def process(n: ModelNode, path: ListBuffer[String]): Unit = {
+         n.keys.foreach { k =>
+            n(k) match {
+               case v: ComplexModelNode => process(v, path :+ k)
+               case v: ValueModelNode => opsByPath.getOrElseUpdate(path, mutable.Map()) += (k -> v)
+            }
+         }
+      }
+      process(modelNode, ListBuffer())
+      val operations = opsByPath flatMap { case (path, attributes) =>
+         val addOperation = createAddOpWithAttributes(attributes.toMap)
+         val insertionPath = basePath
+         if (path.isEmpty) {
+            // Simple attribute of the cache
+            attributes.map { case (attrName, attrValue) =>
+               ModelNode() at insertionPath op 'write_attribute (
+                  'name -> attrName,
+                  'value -> attrValue
+               )
+            }
+         } else if (path.size == 1) {
+            // ModelNode attribute of the cache
+            List(ModelNode() at insertionPath op 'write_attribute (
+               'name -> path.head,
+               'value -> modelNode(path.head)
+            ))
+         } else {
+            // Nested model node inside the cache
+            var nestedPath = insertionPath
+            path.grouped(2).foreach(ar => nestedPath = nestedPath / (ar.head -> ar(1)))
+            List(ModelNode() at nestedPath op addOperation)
+         }
+      }
+      ModelNode.composite(operations)
+   }
 
    private def executeOperation[T](op: ModelNode)(implicit ev: ModelNodeResult[T]): Option[T] = {
-      val resp = client.execute(op)
-      if (!(SUCCESS == resp.get(OUTCOME).asString)) {
-         throw new Exception(s"Error executing operation ${op.toString}: ${resp.asString()}")
+      client ! op match {
+         case Success(node) =>
+            node match {
+               case Response(Response.Success, result) => ev.getValue(result)
+               case Response(Response.Failure, failure) => throw new RuntimeException(s"Error executing operation $op: $failure")
+            }
+         case Failure(failure) => throw new RuntimeException(s"Error executing operation $op.toString", failure)
       }
-      else {
-         val modelNode = resp.get(RESULT)
-         Some(ev.getValue(modelNode))
-      }
-   }
-
-   private def executeOperation[T](command: String)(implicit ev: ModelNodeResult[T]): Option[T] =
-      executeOperation[T](toModelNode(command))
-
-   private def toModelNode(command: String): ModelNode = {
-      val Array(pathString, operationString) = command.split(":")
-      val address = PathAddress.parseCLIStyleAddress(pathString)
-      if (operationString.isEmpty) throw new IllegalArgumentException(s"No operation provided with $command")
-      val regex = """(.*)\((.*)\)""".r
-      val regex(opName, params) = operationString
-
-      val op = new ModelNode
-      op.get(OP).set(opName)
-      op.get(OP_ADDR).set(address.toModelNode)
-      params.split(",").foreach { s =>
-         val Array(k, v) = s.split("=")
-         op.get(k).set(v)
-      }
-      op
    }
 
    @tailrec
@@ -277,7 +296,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       }
    }
 
-   private def waitForServerOperationResult[T](operation: String, condition: T => Boolean)(implicit ev: ModelNodeResult[T]): Unit = {
+   private def waitForServerOperationResult[T](operation: ModelNode, condition: T => Boolean)(implicit ev: ModelNodeResult[T]): Unit = {
       retry {
          val result = executeOperation[T](operation)(ev)
          result.exists(condition)
@@ -288,23 +307,30 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 object SingleNode {
    private val server: InfinispanServer = new InfinispanServer("/infinispan-server/", "server1")
 
-   def start() = if(!server.isStarted) server.startAndWaitForLocalCacheManager()
+   def start() = if (!server.isStarted) server.startAndWaitForLocalCacheManager()
 
    def shutDown() = server.shutDown()
 
    def getServerPort = server.getHotRodPort
 
-   def getOrCreateCache(name: String) = server.obtainNonClusteredCache(name)
+   def getOrCreateCache(name: String, config: Option[ModelNode]) = {
+      server.addLocalCache(name, config)
+      server.obtainRemoteCache(name)
+   }
 }
 
 object Cluster {
-   private val cluster: Cluster = new Cluster(3, "/infinispan-server/")
+   val NumberOfServers = 3
+   val ServerPath = "/infinispan-server/"
+   val StartTimeout = 60 seconds
 
-   def start() = if(!cluster.isStarted) cluster.startAndWait(60 seconds)
+   private val cluster: Cluster = new Cluster(NumberOfServers, ServerPath)
+
+   def start() = if (!cluster.isStarted) cluster.startAndWait(StartTimeout)
 
    def shutDown() = cluster.shutDown()
 
-   def getOrCreateCache(name: String, cacheType: CacheType.Value) = cluster.obtainCache(name, cacheType)
+   def getOrCreateCache(name: String, cacheType: CacheType.Value, config: Option[ModelNode]) = cluster.obtainCache(name, cacheType, config)
 
    def getFirstServerPort = cluster.getFirstServer.getHotRodPort
 }

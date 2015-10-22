@@ -3,6 +3,7 @@ package org.infinispan.spark.test
 import java.util.Properties
 
 import org.infinispan.client.hotrod.RemoteCache
+import org.jboss.dmr.scala.ModelNode
 import org.scalatest.{DoNotDiscover, BeforeAndAfterAll, Suite}
 
 /**
@@ -14,6 +15,8 @@ sealed trait RemoteTest {
    def getCacheName: String
 
    def getTargetCache[K, V]: RemoteCache[K, V]
+
+   def getCacheConfig: Option[ModelNode] = None
 
    def getServerPort: Int
 
@@ -41,7 +44,7 @@ trait SingleServer extends RemoteTest with BeforeAndAfterAll {
 
    override protected def beforeAll(): Unit = {
       SingleNode.start()
-      remoteCache = SingleNode.getOrCreateCache(getCacheName)
+      remoteCache = SingleNode.getOrCreateCache(getCacheName, getCacheConfig)
       remoteCache.clear()
       super.beforeAll()
    }
@@ -53,7 +56,7 @@ trait MultipleServers extends RemoteTest with BeforeAndAfterAll {
 
    def getCacheType: CacheType.Value
 
-   override def getTargetCache[K, V] = Cluster.getOrCreateCache(getCacheName, getCacheType).asInstanceOf[RemoteCache[K, V]]
+   override def getTargetCache[K, V] = Cluster.getOrCreateCache(getCacheName, getCacheType, getCacheConfig).asInstanceOf[RemoteCache[K, V]]
 
    override def getServerPort = Cluster.getFirstServerPort
 
