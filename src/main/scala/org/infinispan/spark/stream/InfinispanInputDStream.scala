@@ -8,7 +8,7 @@ import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.dstream.ReceiverInputDStream
 import org.apache.spark.streaming.receiver.Receiver
 import org.infinispan.client.hotrod.RemoteCacheManager
-import org.infinispan.client.hotrod.annotation.{ClientCacheEntryCreated, ClientCacheEntryModified, ClientCacheEntryRemoved, ClientListener}
+import org.infinispan.client.hotrod.annotation._
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.event.{ClientCacheEntryCustomEvent, ClientEvent}
 import org.infinispan.commons.io.UnsignedNumeric
@@ -38,25 +38,28 @@ private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: Pr
    private class EventListener {
 
       @ClientCacheEntryRemoved
+      @ClientCacheEntryExpired
       def onRemove(event: ClientCacheEntryCustomEvent[Array[Byte]]) {
-         val marshaller = remoteCache.getRemoteCacheManager.getMarshaller
-         val eventData = event.getEventData
-         val rawData = ByteBuffer.wrap(eventData)
-         val rawKey = readElement(rawData)
-         val key: K = marshaller.objectFromByteBuffer(rawKey).asInstanceOf[K]
-         store((key, null.asInstanceOf[V], event.getType))
+         emitEvent(event, ignoreValue = true)
       }
 
       @ClientCacheEntryCreated
       @ClientCacheEntryModified
-      def onAddModify(event: ClientCacheEntryCustomEvent[Array[Byte]]) = {
+      def onAddModify(event: ClientCacheEntryCustomEvent[Array[Byte]]) {
+         emitEvent(event, ignoreValue = false)
+      }
+
+      private def emitEvent(event: ClientCacheEntryCustomEvent[Array[Byte]], ignoreValue: Boolean) = {
          val marshaller = remoteCache.getRemoteCacheManager.getMarshaller
          val eventData = event.getEventData
          val rawData = ByteBuffer.wrap(eventData)
          val rawKey = readElement(rawData)
-         val rawValue = readElement(rawData)
          val key: K = marshaller.objectFromByteBuffer(rawKey).asInstanceOf[K]
-         val value: V = marshaller.objectFromByteBuffer(rawValue).asInstanceOf[V]
+         val value = if (!ignoreValue) {
+            val rawValue = readElement(rawData)
+            marshaller.objectFromByteBuffer(rawValue).asInstanceOf[V]
+         } else null.asInstanceOf[V]
+
          store((key, value, event.getType))
       }
 
