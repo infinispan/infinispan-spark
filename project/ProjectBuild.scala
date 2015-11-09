@@ -58,6 +58,7 @@ object ProjectBuild extends Build {
             baseFlags ++ Seq("-Xlint:_,-nullary-unit", "-Ywarn-unused", "-Ywarn-unused-import")
       },
       resolvers ++= Seq(
+          "Local Maven" at Path.userHome.asFile.toURI.toURL + ".m2/repository",
           "JBoss Releases" at "https://repository.jboss.org/nexus/content/repositories/releases/",
           "JBoss Snapshots" at "https://repository.jboss.org/nexus/content/repositories/snapshots/"
       ),
