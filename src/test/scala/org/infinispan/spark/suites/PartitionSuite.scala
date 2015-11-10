@@ -47,7 +47,7 @@ class PartitionSuite extends FunSuite with Matchers {
 
    }
 
-   private def makeServer(host: String, port: Int): SocketAddress = new InetSocketAddress(host, port)
+   private def makeServer(host: String, port: Int): SocketAddress = InetSocketAddress.createUnresolved(host, port)
 
    private def split(topologyInfo: CacheTopologyInfo, partitionPerServer: Integer) = {
       val props = new Properties()
