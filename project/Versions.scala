@@ -7,4 +7,5 @@ object Versions {
    val twitter4jVersion = "3.0.3"
    val jcipAnnotationsVersion = "1.0"
    val scalaDMRVersion = "0.2.0"
+   val shrinkWrapVersion = "1.2.3"
 }
