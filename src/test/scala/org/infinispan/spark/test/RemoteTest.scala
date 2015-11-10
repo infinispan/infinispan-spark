@@ -20,6 +20,8 @@ sealed trait RemoteTest {
 
    def getServerPort: Int
 
+   def withFilters(): List[FilterDef] = List.empty
+
    def getConfiguration = {
       val properties = new Properties()
       val port = getServerPort
@@ -44,11 +46,16 @@ trait SingleServer extends RemoteTest with BeforeAndAfterAll {
 
    override protected def beforeAll(): Unit = {
       SingleNode.start()
+      withFilters().foreach(SingleNode.addFilter)
       remoteCache = SingleNode.getOrCreateCache(getCacheName, getCacheConfig)
       remoteCache.clear()
       super.beforeAll()
    }
 
+   override protected def afterAll(): Unit = {
+      withFilters().foreach(SingleNode.removeFilter)
+      super.afterAll()
+   }
 }
 
 trait MultipleServers extends RemoteTest with BeforeAndAfterAll {
@@ -62,7 +69,13 @@ trait MultipleServers extends RemoteTest with BeforeAndAfterAll {
 
    override protected def beforeAll(): Unit = {
       Cluster.start()
+      withFilters().foreach(Cluster.addFilter)
       super.beforeAll()
+   }
+
+   override protected def afterAll(): Unit = {
+      withFilters().foreach(Cluster.removeFilter)
+      super.afterAll()
    }
 }
 

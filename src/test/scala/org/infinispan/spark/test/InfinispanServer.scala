@@ -2,14 +2,18 @@ package org.infinispan.spark.test
 
 import java.io.File
 import java.lang.management.ManagementFactory
-import java.net.InetAddress
 import java.nio.file.Paths
 
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
+import org.infinispan.filter.{KeyValueFilterConverterFactory, NamedFactory}
 import org.jboss.as.controller.client.helpers.ClientConstants._
 import org.jboss.dmr.repl.{Client, Response}
 import org.jboss.dmr.scala.{ModelNode, _}
+import org.jboss.shrinkwrap.api.ShrinkWrap
+import org.jboss.shrinkwrap.api.asset.StringAsset
+import org.jboss.shrinkwrap.api.exporter.ZipExporter
+import org.jboss.shrinkwrap.api.spec.JavaArchive
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -30,6 +34,10 @@ object CacheType extends Enumeration {
    val DISTRIBUTED = Value("distributed-cache")
 }
 
+class FilterDef(val factoryImpl: Class[_ <: KeyValueFilterConverterFactory[_, _, _]], val deps: Class[_]*) {
+   val name = factoryImpl.getAnnotation(classOf[NamedFactory]).name()
+   val allClasses = deps :+ factoryImpl
+}
 /**
  * A cluster of Infinispan Servers that can be managed together
  */
@@ -67,6 +75,10 @@ private[test] class Cluster(size: Int, location: String) {
       getFirstServer.obtainRemoteCache(name).asInstanceOf[RemoteCache[K, V]]
    }
 
+   def addFilter(f: FilterDef) = _servers.foreach(_.addFilter(f))
+
+   def removeFilter(f: FilterDef) = _servers.head.removeFilter(f)
+
 }
 
 /**
@@ -74,6 +86,7 @@ private[test] class Cluster(size: Int, location: String) {
  */
 private[test] class InfinispanServer(location: String, name: String, clustered: Boolean = false, portOffSet: Int = 0) {
    val BinFolder = "bin"
+   val DeploymentFolder = "standalone/deployments"
    val LaunchScript = "standalone.sh"
    val NameNodeConfig = "-Djboss.node.name"
    val LogDirConfig = "-Djboss.server.log.dir"
@@ -177,6 +190,10 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
          override def getValue(mn: ModelNode) = mn.asInt
       }
 
+      implicit object ModelNodeResultBoolean extends ModelNodeResult[Boolean] {
+         override def getValue(mn: ModelNode) = mn.asBoolean
+      }
+
       implicit object ModelNodeResultUnit extends ModelNodeResult[Unit] {
          override def getValue(mn: ModelNode) = None
       }
@@ -231,6 +248,26 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
          executeOperation[Unit](ModelNode.composite(ops))
       }
    }
+
+   def deployArchive(archive: JavaArchive) = {
+      archive.as(classOf[ZipExporter]).exportTo(Paths.get(serverHome, DeploymentFolder, archive.getName).toFile, true)
+      waitForServerOperationResult[Boolean](
+         ModelNode() at ("deployment" -> archive.getName) op 'read_attribute (
+            'name -> "enabled"), _ == true
+         )
+   }
+
+   def undeployArchive(name: String) = Paths.get(serverHome, DeploymentFolder, name).toFile.delete()
+
+   def addFilter(filterDef: FilterDef) = {
+      deployArchive(ShrinkWrap
+              .create(classOf[JavaArchive], s"${filterDef.name}.jar")
+              .addClasses(filterDef.allClasses: _*)
+              .setManifest(new StringAsset("Dependencies: org.scala-lang.library"))
+              .addAsServiceProvider(classOf[KeyValueFilterConverterFactory[_, _, _]], filterDef.factoryImpl))
+   }
+
+   def removeFilter(filterDef: FilterDef) = undeployArchive(s"${filterDef.name}.jar")
 
    private def toParam(m: Map[String, Any]) = m.toArray.map { case (k, v) => (Symbol(k), v) }
 
@@ -316,6 +353,10 @@ object SingleNode {
 
    def shutDown() = server.shutDown()
 
+   def addFilter(f: FilterDef) = server.addFilter(f)
+
+   def removeFilter(f: FilterDef) = server.removeFilter(f)
+
    def getServerPort = server.getHotRodPort
 
    def getOrCreateCache(name: String, config: Option[ModelNode]) = {
@@ -332,6 +373,10 @@ object Cluster {
    private val cluster: Cluster = new Cluster(NumberOfServers, ServerPath)
 
    def start() = if (!cluster.isStarted) cluster.startAndWait(StartTimeout)
+
+   def addFilter[K,V,C](f: FilterDef) = cluster.addFilter(f)
+
+   def removeFilter(f: FilterDef) = cluster.removeFilter(f)
 
    def shutDown() = cluster.shutDown()
 
