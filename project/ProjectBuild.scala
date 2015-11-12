@@ -14,7 +14,7 @@ object ProjectBuild extends Build {
          .settings(Publishing.settings: _*)
          .settings(
             moduleName := "infinispan-spark",
-            libraryDependencies ++= Seq(sparkCore, sparkStreaming, sparkSQL, hotRodClient, queryDSL, jcip,
+            libraryDependencies ++= Seq(sparkCore, sparkStreaming, sparkSQL, sparkHive, hotRodClient, queryDSL, jcip,
                                         junit, scalaTest, scalaDMR, infinispanServerZip),
             extractServer := {
                val report = update.value

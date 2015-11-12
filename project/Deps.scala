@@ -9,6 +9,7 @@ object Deps {
    val sparkCore = "org.apache.spark" %% "spark-core" % sparkVersion % "provided"
    val sparkSQL = "org.apache.spark" %% "spark-sql" % sparkVersion % "provided"
    val sparkStreaming = "org.apache.spark" %% "spark-streaming" % sparkVersion % "provided"
+   val sparkHive = "org.apache.spark" %% "spark-hive" % sparkVersion % "provided"
 
    // Tests dependencies
    val junit = "junit" % "junit" % junitVersion % "test"
