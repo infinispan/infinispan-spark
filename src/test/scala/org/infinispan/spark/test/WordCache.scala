@@ -52,12 +52,9 @@ trait WordCache extends BeforeAndAfterAll {
 
    private def pickNouns = (for (i <- 0 to random.nextInt(3)) yield randomWordFrom(nouns)).mkString(" ")
 
-   override def getCacheName = "words"
-
-   lazy val wordsCache = getTargetCache.asInstanceOf[RemoteCache[Int,String]]
+   lazy val wordsCache = getRemoteCache[Int,String]
 
    override protected def beforeAll(): Unit = {
-      val wordsCache = getTargetCache.asInstanceOf[RemoteCache[Int,String]]
       (1 to getNumEntries).par.foreach { i =>
          val contents = Seq(randomWordFrom(adjs), pickNouns).mkString(" ")
          wordsCache.put(i, contents)

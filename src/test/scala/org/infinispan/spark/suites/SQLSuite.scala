@@ -46,7 +46,5 @@ class SQLSuite extends FunSuite with RunnersCache with Spark with MultipleServer
       f(sqlContext, runnersRDD)
    }
 
-   override def getCacheName: String = "sql-cache"
-
    override def getCacheType: CacheType.Value = CacheType.REPLICATED
 }

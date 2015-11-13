@@ -70,9 +70,8 @@ private[test] class Cluster(size: Int, location: String) {
 
    def getFirstServer = _servers.head
 
-   def obtainCache[K, V](name: String, cacheType: CacheType.Value, extraConfigs: Option[ModelNode]): RemoteCache[K, V] = {
+   def createCache[K, V](name: String, cacheType: CacheType.Value, extraConfigs: Option[ModelNode]): Unit = {
       _servers.foreach(_.addCache(CacheContainer, name, cacheType, extraConfigs))
-      getFirstServer.obtainRemoteCache(name).asInstanceOf[RemoteCache[K, V]]
    }
 
    def addFilter(f: FilterDef) = _servers.foreach(_.addFilter(f))
@@ -216,8 +215,6 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       addCache("local", cacheName, CacheType.LOCAL, config)
    }
 
-   def obtainRemoteCache(name: String) = remoteCacheManager.getCache(name)
-
    def cacheExists(name: String, cacheContainer: String, cacheType: CacheType.Value): Boolean = {
       val op = ModelNode() at ("subsystem" -> InfinispanSubsystem) / ("cache-container" -> cacheContainer) op 'read_attribute (
          'name -> "defined-cache-names"
@@ -359,10 +356,8 @@ object SingleNode {
 
    def getServerPort = server.getHotRodPort
 
-   def getOrCreateCache(name: String, config: Option[ModelNode]) = {
-      server.addLocalCache(name, config)
-      server.obtainRemoteCache(name)
-   }
+   def createCache(name: String, config: Option[ModelNode]) = server.addLocalCache(name, config)
+
 }
 
 object Cluster {
@@ -380,7 +375,7 @@ object Cluster {
 
    def shutDown() = cluster.shutDown()
 
-   def getOrCreateCache(name: String, cacheType: CacheType.Value, config: Option[ModelNode]) = cluster.obtainCache(name, cacheType, config)
+   def createCache(name: String, cacheType: CacheType.Value, config: Option[ModelNode]) = cluster.createCache(name, cacheType, config)
 
    def getFirstServerPort = cluster.getFirstServer.getHotRodPort
 }

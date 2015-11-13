@@ -10,15 +10,13 @@ import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
 @DoNotDiscover
 class JavaStreamApiSuite extends FunSuite with JavaSparkStream with SingleServer with Matchers {
 
-   override def getCacheName: String = "java-stream-test"
-
    lazy val javaTest: JavaStreamApiTest = new JavaStreamApiTest
 
    test("Stream consumer from Java") {
-      javaTest.testStreamConsumer(jssc, getConfiguration, getTargetCache)
+      javaTest.testStreamConsumer(jssc, getConfiguration, getRemoteCache)
    }
 
    test("Stream producer from Java") {
-      javaTest.testStreamProducer(jssc, getConfiguration, getTargetCache)
+      javaTest.testStreamProducer(jssc, getConfiguration, getRemoteCache)
    }
 }
