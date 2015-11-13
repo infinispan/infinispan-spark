@@ -25,8 +25,8 @@ class SQLSuite extends FunSuite with RunnersCache with Spark with MultipleServer
          winners.foreach { row =>
             val winnerTime = row.getAs[Int]("time")
             val age = row.getAs[Int]("age")
-            val fasterOfAge = runnersRDD.filter(r => r.age == age && r.finished).sortBy(_.finishTimeSeconds).first()
-            fasterOfAge.finishTimeSeconds shouldBe winnerTime
+            val fasterOfAge = runnersRDD.filter(r => r.getAge == age && r.getFinished).sortBy(_.getFinishTimeSeconds).first()
+            fasterOfAge.getFinishTimeSeconds shouldBe winnerTime
          }
       }
    }
@@ -41,7 +41,7 @@ class SQLSuite extends FunSuite with RunnersCache with Spark with MultipleServer
    private def withSqlContext(f: (SQLContext, RDD[Runner]) => Any) = {
       val runnersRDD = createInfinispanRDD[Integer, Runner].values
       val sqlContext = new SQLContext(sc)
-      val dataFrame = sqlContext.createDataFrame(runnersRDD)
+      val dataFrame = sqlContext.createDataFrame(runnersRDD, classOf[Runner])
       dataFrame.registerTempTable("runners")
       f(sqlContext, runnersRDD)
    }

@@ -24,6 +24,10 @@ public class Address {
       this.country = country;
    }
 
+   public String getStreet() {
+      return street;
+   }
+
    public int getNumber() {
       return number;
    }

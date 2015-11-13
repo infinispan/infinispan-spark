@@ -68,11 +68,11 @@ class StreamingSuite extends FunSuite with SparkStream with MultipleServers with
 
       ssc.addStreamingListener(new StreamingListener {
          override def onReceiverStarted(receiverStarted: StreamingListenerReceiverStarted): Unit = {
-            cache.put(1, new Runner("Bolt", finished = true, 3600, 30))
-            cache.put(2, new Runner("Farah", finished = true, 7200, 29))
-            cache.put(3, new Runner("Ennis", finished = true, 7500, 28))
-            cache.put(4, new Runner("Gatlin", finished = true, 7900, 26), 50, TimeUnit.MILLISECONDS)
-            cache.put(1, new Runner("Bolt", finished = true, 7500, 23))
+            cache.put(1, new Runner("Bolt", true, 3600, 30))
+            cache.put(2, new Runner("Farah", true, 7200, 29))
+            cache.put(3, new Runner("Ennis", true, 7500, 28))
+            cache.put(4, new Runner("Gatlin", true, 7900, 26), 50, TimeUnit.MILLISECONDS)
+            cache.put(1, new Runner("Bolt", true, 7500, 23))
             cache.remove(2)
          }
       })

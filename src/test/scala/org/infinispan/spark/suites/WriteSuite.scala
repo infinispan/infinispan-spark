@@ -18,6 +18,6 @@ class WriteSuite extends FunSuite with Spark with SingleServer with Matchers {
       rdd.writeToInfinispan(getConfiguration)
 
       cache.size() shouldBe 1000
-      cache.get(350L).name shouldBe "name350"
+      cache.get(350L).getName shouldBe "name350"
    }
 }

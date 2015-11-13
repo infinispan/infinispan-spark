@@ -1,7 +1,5 @@
 package org.infinispan.spark.test
 
-import java.util.Properties
-
 import org.apache.spark.{SparkConf, SparkContext}
 import org.infinispan.spark.rdd.InfinispanRDD
 import org.scalatest.{BeforeAndAfterAll, Suite}
@@ -14,8 +12,10 @@ import org.scalatest.{BeforeAndAfterAll, Suite}
 trait Spark extends BeforeAndAfterAll {
    this: Suite with RemoteTest =>
 
-   private lazy val config: SparkConf = new SparkConf().setMaster("local[8]").setAppName(this.getClass.getName)
+   private lazy val config: SparkConf = createSparkConfig
    protected var sc: SparkContext = _
+
+   def createSparkConfig = new SparkConf().setMaster("local[8]").setAppName(this.getClass.getName)
 
    def createInfinispanRDD[K, V] = {
       new InfinispanRDD[K, V](sc, configuration = getConfiguration)

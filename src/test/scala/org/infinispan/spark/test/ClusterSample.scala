@@ -32,7 +32,7 @@ object ClusterSample {
          override def getFilterConverter = new SampleFilter
 
          class SampleFilter extends AbstractKeyValueFilterConverter[Int, Runner, String] with Serializable {
-            override def filterAndConvert(k: Int, v: Runner, metadata: Metadata): String = v.name
+            override def filterAndConvert(k: Int, v: Runner, metadata: Metadata): String = v.getName
          }
 
       }
