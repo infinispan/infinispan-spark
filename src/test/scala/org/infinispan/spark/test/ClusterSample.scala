@@ -2,6 +2,8 @@ package org.infinispan.spark.test
 
 import java.io.Serializable
 
+import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
+import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.filter.{AbstractKeyValueFilterConverter, KeyValueFilterConverterFactory, NamedFactory}
 import org.infinispan.metadata.Metadata
 import org.infinispan.spark.domain.Runner
@@ -30,7 +32,7 @@ object ClusterSample {
          override def getFilterConverter = new SampleFilter
 
          class SampleFilter extends AbstractKeyValueFilterConverter[Int, Runner, String] with Serializable {
-            override def filterAndConvert(k: Int, v: Runner, metadata: Metadata): String = v.getName
+            override def filterAndConvert(k: Int, v: Runner, metadata: Metadata): String = v.name
          }
 
       }
@@ -82,7 +84,11 @@ object ClusterSample {
 
       cluster addFilter filterDef
 
-      val cache = cluster.obtainCache[Int,Runner]("my-test-cache", CacheType.DISTRIBUTED, Some(cacheConfig))
+      cluster.createCache[Int,Runner]("my-test-cache", CacheType.DISTRIBUTED, Some(cacheConfig))
+
+      val builder = new ConfigurationBuilder().addServer().host("localhost").port(cluster.getFirstServer.getHotRodPort).pingOnStartup(true).build
+
+      val cache: RemoteCache[Int,Runner] = new RemoteCacheManager(builder).getCache("my-test-cache")
 
       cache.put(1, new Runner("Runner1", true, 3600, 34))
       assert(cache.size() == 1)

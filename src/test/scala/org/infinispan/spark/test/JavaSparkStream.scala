@@ -25,7 +25,7 @@ trait JavaSparkStream extends BeforeAndAfterEach {
    override protected def beforeEach(): Unit = {
       jsc = new JavaSparkContext(config)
       jssc = new JavaStreamingContext(jsc, Seconds(1))
-      getTargetCache.clear()
+      getRemoteCache.clear()
       super.beforeEach()
    }
 

@@ -23,14 +23,13 @@ trait RunnersCache extends BeforeAndAfterAll {
       val MaxFinishTime = 4500
       val MinAge = 15
       val MaxAge = 60
-      val cacheRunners = getTargetCache.asInstanceOf[RemoteCache[Int,Runner]]
       (1 to getNumEntries).par.foreach { i =>
          val name = "Runner " + i
          val finished = if (i % 2 == 0) true else false
-         val finishTime = random.nextInt((MaxFinishTime - MinFinishTime) + 1)
+         val finishTime = random.nextInt((MaxFinishTime - MinFinishTime) + 1) + MinFinishTime
          val age = Integer.valueOf(i * (MaxAge - MinAge) / getNumEntries + MinAge)
-         val runner = new Runner(name, finished, finishTime, age)
-         cacheRunners.put(i, runner)
+         val runner = new Runner(name, finished, if(finished) finishTime else 0, age)
+         getRemoteCache.put(i, runner)
       }
       super.beforeAll()
    }

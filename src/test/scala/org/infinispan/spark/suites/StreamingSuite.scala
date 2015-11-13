@@ -25,8 +25,6 @@ import scala.language.postfixOps
 @DoNotDiscover
 class StreamingSuite extends FunSuite with SparkStream with MultipleServers with Matchers {
 
-   override def getCacheName: String = "streaming-cache"
-
    override def getCacheConfig: Option[ModelNode] = Some(ModelNode(
       "expiration" -> ModelNode(
          "EXPIRATION" -> ModelNode(
@@ -43,7 +41,7 @@ class StreamingSuite extends FunSuite with SparkStream with MultipleServers with
    }
 
    test("test stream consumer") {
-      val cache = getTargetCache.asInstanceOf[RemoteCache[Int, String]]
+      val cache = getRemoteCache.asInstanceOf[RemoteCache[Int, String]]
       val stream = new TestInputDStream(ssc, of = Seq(1 -> "value1", 2 -> "value2", 3 -> "value3"), streamItemEvery = 100 millis)
 
       stream.writeToInfinispan(getProperties)
@@ -58,7 +56,7 @@ class StreamingSuite extends FunSuite with SparkStream with MultipleServers with
    }
 
    test("test stream producer") {
-      val cache = getTargetCache.asInstanceOf[RemoteCache[Int, Runner]]
+      val cache = getRemoteCache.asInstanceOf[RemoteCache[Int, Runner]]
       cache.clear()
 
       val stream = new InfinispanInputDStream[Int, Runner](ssc, StorageLevel.MEMORY_ONLY, getProperties)

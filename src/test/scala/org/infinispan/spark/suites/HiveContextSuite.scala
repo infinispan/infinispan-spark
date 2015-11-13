@@ -29,6 +29,4 @@ class HiveContextSuite extends FunSuite with RunnersCache with Spark with Single
       f(hiveContext, runnersRDD)
    }
 
-   override def getCacheName: String = "hive-test"
-
 }
