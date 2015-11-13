@@ -12,11 +12,7 @@ import org.infinispan.spark.domain.Person;
 import org.infinispan.spark.rdd.InfinispanJavaRDD;
 import scala.Tuple2;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.stream.IntStream;
 
 import static org.junit.Assert.assertEquals;
@@ -31,12 +27,14 @@ public class JavaApiTest {
    private static final List<String> COUNTRIES = Arrays.asList("BRA", "UK", "ITA", "FRA", "SPA");
 
    private final JavaSparkContext jsc;
+   private final RemoteCache<Integer, Person> cache;
    private final Properties config;
 
-   private JavaPairRDD<Integer, Person> infinispanRDD;
+    private InfinispanJavaRDD<Integer, Person> infinispanRDD;
 
    public JavaApiTest(JavaSparkContext jsc, RemoteCache<Integer, Person> cache, Properties config) {
       this.jsc = jsc;
+      this.cache = cache;
       this.config = config;
       IntStream.rangeClosed(1, COUNT).forEach(i -> {
          String country = COUNTRIES.get(i % COUNTRIES.size());
@@ -73,7 +71,7 @@ public class JavaApiTest {
       JavaPairRDD<Integer, Person> pairsRDD = jsc.parallelizePairs(pairs);
       InfinispanJavaRDD.write(pairsRDD, config);
 
-      assertEquals(COUNT + 2, infinispanRDD.count());
+      assertEquals(COUNT + 2, cache.size());
    }
 
    public void testSQL() throws Exception {
@@ -86,5 +84,15 @@ public class JavaApiTest {
 
       assertTrue(rows.stream().allMatch(r -> COUNTRIES.contains(r.getString(0))));
    }
+
+    public void testFilterByDeployedFilter() throws Exception {
+        int  minAge = 20;
+        int maxAge = 30;
+        JavaPairRDD<Integer, Person> filteredRDD = infinispanRDD.<Person>filterByCustom("age-filter", minAge, maxAge);
+
+        long expected = infinispanRDD.values().filter(p -> p.getAge() >= minAge && p.getAge() <= maxAge).count();
+
+        assertEquals(expected, filteredRDD.values().count());
+    }
 
 }

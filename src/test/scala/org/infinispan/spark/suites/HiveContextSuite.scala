@@ -24,7 +24,7 @@ class HiveContextSuite extends FunSuite with RunnersCache with Spark with Single
    private def withHiveContext(f: (HiveContext, RDD[Runner]) => Any) = {
       val runnersRDD = createInfinispanRDD[Integer, Runner].values
       val hiveContext = new HiveContext(sc)
-      val dataFrame = hiveContext.createDataFrame(runnersRDD)
+      val dataFrame = hiveContext.createDataFrame(runnersRDD, classOf[Runner])
       dataFrame.registerTempTable("runners")
       f(hiveContext, runnersRDD)
    }

@@ -1,13 +1,24 @@
 package org.infinispan.spark.suites
 
 import org.infinispan.spark.JavaApiTest
-import org.infinispan.spark.test.{JavaSpark, SingleServer}
+import org.infinispan.spark.domain.{Address, Person}
+import org.infinispan.spark.test.SampleFilters.AgeFilterFactory
+import org.infinispan.spark.test.{FilterDef, JavaSpark, SingleServer}
 import org.scalatest._
 
 @DoNotDiscover
 class JavaApiSuite extends FunSuite with JavaSpark with SingleServer with Matchers {
 
    lazy val javaTest: JavaApiTest = new JavaApiTest(jsc, getRemoteCache, getConfiguration)
+
+   override def withFilters() = List(
+      new FilterDef(
+         classOf[AgeFilterFactory],
+         classOf[AgeFilterFactory#AgeFilter],
+         classOf[Person],
+         classOf[Address]
+      )
+   )
 
    test("RDD Read from Java") {
       javaTest.testRDDRead()
@@ -21,4 +32,7 @@ class JavaApiSuite extends FunSuite with JavaSpark with SingleServer with Matche
       javaTest.testSQL()
    }
 
+   test("Filter by deployed filter") {
+      javaTest.testFilterByDeployedFilter()
+   }
 }
