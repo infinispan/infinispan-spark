@@ -69,12 +69,7 @@ public class WordCountJava {
               .filter(s -> !stopWords.contains(s.toLowerCase()))
               .mapToPair(word -> new Tuple2<>(word, 1))
               .reduceByKey((a, b) -> a + b)
-              .takeOrdered(20, new SerializableComparator<Tuple2<String, Integer>>() {
-                 @Override
-                 public int compare(Tuple2<String, Integer> o1, Tuple2<String, Integer> o2) {
-                    return o2._2().compareTo(o1._2());
-                 }
-              });
+              .takeOrdered(20, (SerializableComparator<Tuple2<String, Integer>>) (o1, o2) -> o2._2().compareTo(o1._2()));
 
       // Print the results
       results.forEach(res -> System.out.format("'%s' appears %d times\n", res._1(), res._2()));
