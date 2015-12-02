@@ -33,8 +33,8 @@ import static org.apache.spark.storage.StorageLevel.MEMORY_ONLY;
 public class StreamProducerJava {
 
    public static void main(String[] args) {
-      if (args.length < 4) {
-         System.out.println("Usage: StreamProducerJava <twitter4j.oauth.consumerKey> <twitter4j.oauth.consumerSecret> <twitter4j.oauth.accessToken> twitter4j.oauth.accessTokenSecret");
+      if (args.length < 5) {
+         System.out.println("Usage: StreamProducerJava <twitter4j.oauth.consumerKey> <twitter4j.oauth.consumerSecret> <twitter4j.oauth.accessToken> <twitter4j.oauth.accessTokenSecret> <infinispan_host>");
          System.exit(1);
       }
 
@@ -42,6 +42,7 @@ public class StreamProducerJava {
       System.setProperty("twitter4j.oauth.consumerSecret", args[1]);
       System.setProperty("twitter4j.oauth.accessToken", args[2]);
       System.setProperty("twitter4j.oauth.accessTokenSecret", args[3]);
+      String infinispanHost = args[4];
 
       // Reduce the log level in the driver
       Logger.getLogger("org").setLevel(Level.WARN);
@@ -51,12 +52,9 @@ public class StreamProducerJava {
       // Create the streaming context
       JavaStreamingContext javaStreamingContext = new JavaStreamingContext(conf, Seconds.apply(1));
 
-      // Extract the value of the spark master to reuse in the infinispan configuration
-      String master = javaStreamingContext.sparkContext().getConf().get("spark.master").replace("spark://", "").replace("mesos://", "").replaceAll(":.*", "");
-
       // Populate infinispan properties
       Properties infinispanProperties = new Properties();
-      infinispanProperties.put("infinispan.client.hotrod.server_list", master);
+      infinispanProperties.put("infinispan.client.hotrod.server_list", infinispanHost);
 
       JavaReceiverInputDStream<Status> twitterDStream = TwitterUtils.createStream(javaStreamingContext);
 

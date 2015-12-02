@@ -22,8 +22,8 @@ import scala.language.postfixOps
 object StreamConsumerScala {
 
    def main(args: Array[String]) {
-      if (args.length < 4) {
-         System.out.println("Usage: StreamConsumerScala <twitter4j.oauth.consumerKey> <twitter4j.oauth.consumerSecret> <twitter4j.oauth.accessToken> twitter4j.oauth.accessTokenSecret")
+      if (args.length < 5) {
+         System.out.println("Usage: StreamConsumerScala <twitter4j.oauth.consumerKey> <twitter4j.oauth.consumerSecret> <twitter4j.oauth.accessToken> <twitter4j.oauth.accessTokenSecret> <infinispan_host>")
          System.exit(1)
       }
 
@@ -32,15 +32,15 @@ object StreamConsumerScala {
       System.setProperty("twitter4j.oauth.consumerSecret", args(1))
       System.setProperty("twitter4j.oauth.accessToken", args(2))
       System.setProperty("twitter4j.oauth.accessTokenSecret", args(3))
+      val infinispanHost: String = args(4)
 
       val conf = new SparkConf().setAppName("spark-infinispan-stream-consumer-scala")
       val sparkContext = new SparkContext(conf)
-      val master = sparkContext.getConf.get("spark.master").replace("spark://", "").replace("mesos://", "").replaceAll(":.*", "")
 
       val streamingContext = new StreamingContext(sparkContext, Seconds(1))
 
       val infinispanProperties = new Properties
-      infinispanProperties.put("infinispan.client.hotrod.server_list", master)
+      infinispanProperties.put("infinispan.client.hotrod.server_list", infinispanHost)
       val remoteCacheManager = new RemoteCacheManager(new ConfigurationBuilder().withProperties(infinispanProperties).build())
       val cache = remoteCacheManager.getCache[Long, Tweet]
 

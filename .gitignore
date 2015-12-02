@@ -1,3 +1,4 @@
 .idea_modules
 .idea
 target/
+derby.log
