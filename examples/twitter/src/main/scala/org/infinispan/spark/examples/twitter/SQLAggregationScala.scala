@@ -15,6 +15,8 @@ import org.infinispan.spark.rdd.InfinispanRDD
 object SQLAggregationScala {
 
    def main(args: Array[String]) {
+      val infinispanHost: String = args(4)
+
       // Reduce the log level in the driver
       Logger.getLogger("org").setLevel(Level.WARN)
 
@@ -22,12 +24,9 @@ object SQLAggregationScala {
       val conf = new SparkConf().setAppName("spark-infinispan-rdd-aggregation-scala")
       val sc = new SparkContext(conf)
 
-      // Extract the value of the spark master to reuse in the infinispan configuration
-      val master = sc.getConf.get("spark.master").replace("spark://", "").replace("mesos://", "").replaceAll(":.*", "")
-
       // Populate infinispan properties
       val infinispanProperties = new Properties
-      infinispanProperties.put("infinispan.client.hotrod.server_list", master)
+      infinispanProperties.put("infinispan.client.hotrod.server_list", infinispanHost)
 
       // Create RDD from infinispan data
       val infinispanRDD = new InfinispanRDD[Long, Tweet](sc, configuration = infinispanProperties)

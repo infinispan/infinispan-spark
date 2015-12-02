@@ -24,6 +24,8 @@ import java.util.Properties;
 public class SQLAggregationJava {
 
    public static void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
+      String infinispanHost = args[4];
+
       // Reduce the log level in the driver
       Logger.getLogger("org").setLevel(Level.WARN);
 
@@ -32,12 +34,9 @@ public class SQLAggregationJava {
       // Create java spark context
       JavaSparkContext javaSparkContext = new JavaSparkContext(conf);
 
-      // Extract the value of the spark master to reuse in the infinispan configuration
-      String master = javaSparkContext.getConf().get("spark.master").replace("spark://", "").replaceAll("mesos://", "").replaceAll(":.*", "");
-
       // Populate infinispan properties
       Properties infinispanProperties = new Properties();
-      infinispanProperties.put("infinispan.client.hotrod.server_list", master);
+      infinispanProperties.put("infinispan.client.hotrod.server_list", infinispanHost);
 
       // Create RDD from infinispan data
       JavaPairRDD<Long, Tweet> infinispanRDD = InfinispanJavaRDD.createInfinispanRDD(javaSparkContext, infinispanProperties);

@@ -14,17 +14,18 @@ import scala.io.Source.fromInputStream
 object WordCountScala {
 
    def main(args: Array[String]) {
+      val infinispanHost = args(4)
+
       Logger.getLogger("org").setLevel(Level.WARN)
 
       val conf = new SparkConf().setAppName("spark-infinispan-wordcount-scala")
       val sc = new SparkContext(conf)
-      val master = sc.getConf.get("spark.master").replace("spark://", "").replace("mesos://", "").replaceAll(":.*", "")
 
       val stopWords =
          fromInputStream(classOf[WordCountJava].getClassLoader.getResourceAsStream("stopWords.txt")).getLines().toSet
 
       val infinispanProperties = new Properties
-      infinispanProperties.put("infinispan.client.hotrod.server_list", master)
+      infinispanProperties.put("infinispan.client.hotrod.server_list", infinispanHost)
 
       val infinispanRDD = new InfinispanRDD[Long, Tweet](sc, configuration = infinispanProperties)
 

@@ -5,33 +5,24 @@ and Streaming.
 
 ### 0. Preparation
 
+#### Build the project
+
+Make sure project is built to generate the job fat jar. From the project root, type:
+
+```./sbt +examples/assembly```
+
+#### MacOS X docker users
+
+Create the following route in order to make the containers acessible via their IPs:
+
+``` sudo route -n add 172.17.0.0/16 `docker-machine ip default` ```
+
 #### Launch a cluster
 
-For this sample a docker image ```gustavonalle/infinispan-spark``` will be used. It will launch a Spark standalone cluster
-co-located with a Infinispan server cluster.
+Make sure ```docker``` and ```docker-compose``` are installed.  
+To launch the Spark standalone cluster and the Infinispan cluster, run the script: 
 
-First, launch the master:
-
-``` docker run --name master -ti gustavonalle/infinispan-spark ```
-
-Then one or more workers:
-
-``` docker run -ti --link master:master  gustavonalle/infinispan-spark ```
-
-##### MacOS X users
-
-To be able to launch the docker containers, install http://boot2docker.io/
-
-Create the following route (after boot2docker is started):
-
-``` sudo route -n add 172.17.0.0/16 `boot2docker ip` ```
-
-
-#### Build the job uber jar
-
-From the project root, type:
-
-```sbt +examples/assembly```
+``` ./run-clusters.sh ```
 
 #### Obtain Tweeter OAuth credentials
 
@@ -122,3 +113,7 @@ Sample output:
 [Brasil,3]
 [United States,3]
 ```
+
+### 5. Stop containers
+
+```docker-compose stop```
