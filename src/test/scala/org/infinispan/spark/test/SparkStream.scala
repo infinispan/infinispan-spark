@@ -1,5 +1,8 @@
 package org.infinispan.spark.test
 
+import java.lang.Thread._
+
+import org.apache.spark.streaming.scheduler.{StreamingListener, StreamingListenerReceiverStarted}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.{BeforeAndAfterEach, Suite}
@@ -27,6 +30,15 @@ trait SparkStream extends BeforeAndAfterEach {
       ssc.stop(stopSparkContext = true)
       sc.stop()
       super.afterEach()
+   }
+
+   protected def executeAfterReceiverStarted(block: => Unit) = {
+      ssc.addStreamingListener(new StreamingListener {
+         override def onReceiverStarted(receiverStarted: StreamingListenerReceiverStarted): Unit = {
+            sleep(1000)
+            block
+         }
+      })
    }
 
 }

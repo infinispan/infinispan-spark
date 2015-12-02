@@ -15,6 +15,7 @@ import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.event.ClientEvent;
 import org.infinispan.spark.domain.Person;
 import org.infinispan.spark.stream.InfinispanJavaDStream;
+import org.infinispan.spark.test.TestingUtil;
 import scala.Tuple2;
 import scala.Tuple3;
 
@@ -64,7 +65,7 @@ public class JavaStreamApiTest {
 
       jssc.start();
 
-      jssc.addStreamingListener((ReceiverStartListener) receiverStarted -> {
+      executeAfterReceiverStarted(jssc, () -> {
          cache.put(1, createPerson(1));
          cache.put(2, createPerson(2));
          cache.put(3, createPerson(3));
@@ -72,9 +73,7 @@ public class JavaStreamApiTest {
          cache.remove(2);
       });
 
-      jssc.awaitTerminationOrTimeout(2000);
-
-      assertEquals(5, streamDump.size());
+      TestingUtil.waitForCondition(() -> streamDump.size() == 5);
       assertEquals(3, streamDump.stream().filter(p -> p._3() == ClientEvent.Type.CLIENT_CACHE_ENTRY_CREATED).count());
       assertEquals(1, streamDump.stream().filter(p -> p._3() == ClientEvent.Type.CLIENT_CACHE_ENTRY_REMOVED).count());
       assertEquals(1, streamDump.stream().filter(p -> p._3() == ClientEvent.Type.CLIENT_CACHE_ENTRY_MODIFIED).count());
@@ -107,6 +106,16 @@ public class JavaStreamApiTest {
       @Override
       default void onBatchCompleted(StreamingListenerBatchCompleted batchCompleted) {
       }
+   }
+
+   private void executeAfterReceiverStarted(JavaStreamingContext context, Runnable code) {
+      context.addStreamingListener((ReceiverStartListener) receiverStarted -> {
+         try {
+            Thread.sleep(1000);
+         } catch (InterruptedException ignored) {
+         }
+         code.run();
+      });
    }
 
 }

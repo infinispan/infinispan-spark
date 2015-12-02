@@ -7,6 +7,7 @@ import java.nio.file.Paths
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
 import org.infinispan.filter.{KeyValueFilterConverterFactory, NamedFactory}
+import org.infinispan.spark.test.TestingUtil.waitForCondition
 import org.jboss.as.controller.client.helpers.ClientConstants._
 import org.jboss.dmr.repl.{Client, Response}
 import org.jboss.dmr.scala.{ModelNode, _}
@@ -320,23 +321,8 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       }
    }
 
-   @tailrec
-   private def retry(command: => Boolean, numTimes: Int = 60, waitBetweenRetries: Int = 1000): Unit = {
-      Try(command) match {
-         case Success(true) =>
-         case Success(false) if numTimes == 0 => throw new Exception("Timeout waiting for condition")
-         case Success(false) =>
-            Thread.sleep(waitBetweenRetries)
-            retry(command, numTimes - 1, waitBetweenRetries)
-         case Failure(e) if numTimes == 0 => throw e
-         case Failure(e) if numTimes > 1 =>
-            Thread.sleep(waitBetweenRetries)
-            retry(command, numTimes - 1, waitBetweenRetries)
-      }
-   }
-
    private def waitForServerOperationResult[T](operation: ModelNode, condition: T => Boolean)(implicit ev: ModelNodeResult[T]): Unit = {
-      retry {
+      waitForCondition { () =>
          val result = executeOperation[T](operation)(ev)
          result.exists(condition)
       }

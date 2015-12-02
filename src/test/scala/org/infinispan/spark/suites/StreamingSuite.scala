@@ -4,13 +4,13 @@ import java.util.Properties
 import java.util.concurrent.TimeUnit
 
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.streaming.scheduler.{StreamingListener, StreamingListenerReceiverStarted}
 import org.infinispan.client.hotrod.RemoteCache
 import org.infinispan.client.hotrod.event.ClientEvent
 import org.infinispan.client.hotrod.event.ClientEvent.Type.{CLIENT_CACHE_ENTRY_CREATED, CLIENT_CACHE_ENTRY_EXPIRED, CLIENT_CACHE_ENTRY_MODIFIED, CLIENT_CACHE_ENTRY_REMOVED}
 import org.infinispan.spark.domain.Runner
 import org.infinispan.spark.stream._
 import org.infinispan.spark.test.StreamingUtils.TestInputDStream
+import org.infinispan.spark.test.TestingUtil._
 import org.infinispan.spark.test.{CacheType, MultipleServers, SparkStream}
 import org.jboss.dmr.scala.ModelNode
 import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
@@ -47,9 +47,8 @@ class StreamingSuite extends FunSuite with SparkStream with MultipleServers with
       stream.writeToInfinispan(getProperties)
 
       ssc.start()
-      ssc.awaitTerminationOrTimeout(2000)
 
-      cache.size shouldBe 3
+      waitForCondition(() => cache.size == 3)
       cache.get(1) shouldBe "value1"
       cache.get(2) shouldBe "value2"
       cache.get(3) shouldBe "value3"
@@ -66,20 +65,16 @@ class StreamingSuite extends FunSuite with SparkStream with MultipleServers with
 
       ssc.start()
 
-      ssc.addStreamingListener(new StreamingListener {
-         override def onReceiverStarted(receiverStarted: StreamingListenerReceiverStarted): Unit = {
-            cache.put(1, new Runner("Bolt", true, 3600, 30))
-            cache.put(2, new Runner("Farah", true, 7200, 29))
-            cache.put(3, new Runner("Ennis", true, 7500, 28))
-            cache.put(4, new Runner("Gatlin", true, 7900, 26), 50, TimeUnit.MILLISECONDS)
-            cache.put(1, new Runner("Bolt", true, 7500, 23))
-            cache.remove(2)
-         }
-      })
+      executeAfterReceiverStarted {
+         cache.put(1, new Runner("Bolt", finished = true, 3600, 30))
+         cache.put(2, new Runner("Farah", finished = true, 7200, 29))
+         cache.put(3, new Runner("Ennis", finished = true, 7500, 28))
+         cache.put(4, new Runner("Gatlin", finished = true, 7900, 26), 50, TimeUnit.MILLISECONDS)
+         cache.put(1, new Runner("Bolt", finished = true, 7500, 23))
+         cache.remove(2)
+      }
 
-      ssc.awaitTerminationOrTimeout(2000)
-
-      streamDump.size shouldBe 7
+      waitForCondition(() => streamDump.size == 7)
       eventsOfType(streamDump)(CLIENT_CACHE_ENTRY_CREATED) shouldBe 4
       eventsOfType(streamDump)(CLIENT_CACHE_ENTRY_REMOVED) shouldBe 1
       eventsOfType(streamDump)(CLIENT_CACHE_ENTRY_MODIFIED) shouldBe 1
