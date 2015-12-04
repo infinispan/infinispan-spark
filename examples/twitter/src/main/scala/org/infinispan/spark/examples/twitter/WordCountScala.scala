@@ -14,9 +14,13 @@ import scala.io.Source.fromInputStream
 object WordCountScala {
 
    def main(args: Array[String]) {
-      val infinispanHost = args(4)
+      if (args.length < 1) {
+         System.out.println("Usage: WordCountScala <infinispan_host>")
+         System.exit(1)
+      }
 
       Logger.getLogger("org").setLevel(Level.WARN)
+      val infinispanHost = args(0)
 
       val conf = new SparkConf().setAppName("spark-infinispan-wordcount-scala")
       val sc = new SparkContext(conf)

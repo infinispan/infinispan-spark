@@ -2,12 +2,6 @@
 
 set -e
 
-if [ $# -lt 5 ]
-  then
-    echo "Usage:run-job.sh <MainClass> <twitter.consumerKey> <twitter.consumerSecret> <twitter.accessToken> <twitter.accessTokenSecret>"
-    exit 0
-fi
-
 SPARK_VERSION=$(cat ../../project/Versions.scala | grep sparkVersion | awk '{print $4}' | sed 's/\"//g')
 HADOOP_VERSION="2.6"
 
@@ -32,5 +26,5 @@ SPARK_MASTER="$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $SPAR
 INFINISPAN_MASTER="$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $INFINISPAN_NAME)"
 
 echo "Submitting the job"
-$SPARK_HOME/bin/spark-submit  --class $1 --master spark://$SPARK_MASTER:7077 target/scala-2.10/infinispan-spark-twitter.jar $2 $3 $4 $5 $INFINISPAN_MASTER
+$SPARK_HOME/bin/spark-submit  --class $1 --master spark://$SPARK_MASTER:7077 target/scala-2.10/infinispan-spark-twitter.jar ${INFINISPAN_MASTER} $2 $3 $4 $5
 

@@ -36,7 +36,11 @@ import static java.util.stream.Collectors.toList;
 public class WordCountJava {
 
    public static void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
-      String infinispanHost = args[4];
+      if (args.length < 1) {
+         System.out.println("Usage: WordCountJava <infinispan_host>");
+         System.exit(1);
+      }
+      String infinispanHost = args[0];
 
       // Reduce the log level in the driver
       Logger.getLogger("org").setLevel(Level.WARN);
