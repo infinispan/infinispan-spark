@@ -24,7 +24,11 @@ import java.util.Properties;
 public class SQLAggregationJava {
 
    public static void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
-      String infinispanHost = args[4];
+      if (args.length < 1) {
+         System.out.println("Usage: SQLAggregationJava <infinispan_host>");
+         System.exit(1);
+      }
+      String infinispanHost = args[0];
 
       // Reduce the log level in the driver
       Logger.getLogger("org").setLevel(Level.WARN);

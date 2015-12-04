@@ -23,16 +23,16 @@ object StreamConsumerScala {
 
    def main(args: Array[String]) {
       if (args.length < 5) {
-         System.out.println("Usage: StreamConsumerScala <twitter4j.oauth.consumerKey> <twitter4j.oauth.consumerSecret> <twitter4j.oauth.accessToken> <twitter4j.oauth.accessTokenSecret> <infinispan_host>")
+         System.out.println("Usage: StreamConsumerScala <infinispan_host> <twitter4j.oauth.consumerKey> <twitter4j.oauth.consumerSecret> <twitter4j.oauth.accessToken> <twitter4j.oauth.accessTokenSecret>")
          System.exit(1)
       }
 
       Logger.getLogger("org").setLevel(Level.WARN)
-      System.setProperty("twitter4j.oauth.consumerKey", args(0))
-      System.setProperty("twitter4j.oauth.consumerSecret", args(1))
-      System.setProperty("twitter4j.oauth.accessToken", args(2))
-      System.setProperty("twitter4j.oauth.accessTokenSecret", args(3))
-      val infinispanHost: String = args(4)
+      val infinispanHost = args(0)
+      System.setProperty("twitter4j.oauth.consumerKey", args(1))
+      System.setProperty("twitter4j.oauth.consumerSecret", args(2))
+      System.setProperty("twitter4j.oauth.accessToken", args(3))
+      System.setProperty("twitter4j.oauth.accessTokenSecret", args(4))
 
       val conf = new SparkConf().setAppName("spark-infinispan-stream-consumer-scala")
       val sparkContext = new SparkContext(conf)

@@ -35,15 +35,15 @@ public class StreamConsumerJava {
 
    public static void main(String[] args) {
       if (args.length < 5) {
-         System.out.println("Usage: StreamConsumerJava <twitter4j.oauth.consumerKey> <twitter4j.oauth.consumerSecret> <twitter4j.oauth.accessToken> <twitter4j.oauth.accessTokenSecret> <infinispan_host>");
+         System.out.println("Usage: StreamConsumerJava <infinispan_host> <twitter4j.oauth.consumerKey> <twitter4j.oauth.consumerSecret> <twitter4j.oauth.accessToken> <twitter4j.oauth.accessTokenSecret>");
          System.exit(1);
       }
 
-      System.setProperty("twitter4j.oauth.consumerKey", args[0]);
-      System.setProperty("twitter4j.oauth.consumerSecret", args[1]);
-      System.setProperty("twitter4j.oauth.accessToken", args[2]);
-      System.setProperty("twitter4j.oauth.accessTokenSecret", args[3]);
-      String infinispanHost = args[4];
+      String infinispanHost = args[0];
+      System.setProperty("twitter4j.oauth.consumerKey", args[1]);
+      System.setProperty("twitter4j.oauth.consumerSecret", args[2]);
+      System.setProperty("twitter4j.oauth.accessToken", args[3]);
+      System.setProperty("twitter4j.oauth.accessTokenSecret", args[4]);
 
       // Reduce the log level in the driver
       Logger.getLogger("org").setLevel(Level.WARN);

@@ -15,7 +15,13 @@ import org.infinispan.spark.rdd.InfinispanRDD
 object SQLAggregationScala {
 
    def main(args: Array[String]) {
-      val infinispanHost: String = args(4)
+      if (args.length < 1) {
+         System.out.println("Usage: SQLAggregationScala <infinispan_host>")
+         System.exit(1)
+      }
+
+      Logger.getLogger("org").setLevel(Level.WARN)
+      val infinispanHost = args(0)
 
       // Reduce the log level in the driver
       Logger.getLogger("org").setLevel(Level.WARN)

@@ -61,7 +61,7 @@ and will print the top 20 words found. Output will be:
 
 To run the job:
 
-```./run-job.sh org.infinispan.spark.examples.twitter.WordCountJava <twitter.consumerKey> <twitter.consumerSecret> <twitter.accessToken> <twitter.accessTokenSecret>```
+```./run-job.sh org.infinispan.spark.examples.twitter.WordCountJava```
 
 or use ```org.infinispan.spark.examples.twitter.WordCountScala``` for the Scala version.
 
@@ -73,7 +73,7 @@ The ```SQLAggregation``` job uses SQL to group the tweets by country and print t
 
 Java:
 
-```./run-job.sh org.infinispan.spark.examples.twitter.SQLAggregationJava <twitter.consumerKey> <twitter.consumerSecret> <twitter.accessToken> <twitter.accessTokenSecret>```
+```./run-job.sh org.infinispan.spark.examples.twitter.SQLAggregationJava```
 
 or use ```org.infinispan.spark.examples.twitter.SQLAggregationScala``` for the Scala version.
 
