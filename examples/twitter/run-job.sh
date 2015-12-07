@@ -2,15 +2,6 @@
 
 set -e
 
-SPARK_VERSION=$(cat ../../project/Versions.scala | grep sparkVersion | awk '{print $4}' | sed 's/\"//g')
-HADOOP_VERSION="2.6"
-
-echo "Getting Spark..."
-
-wget -nc "http://mirror.vorboss.net/apache/spark/spark-$SPARK_VERSION/spark-$SPARK_VERSION-bin-hadoop$HADOOP_VERSION.tgz" && tar -xzf spark-$SPARK_VERSION-bin-hadoop$HADOOP_VERSION.tgz
-
-SPARK_HOME=spark-$SPARK_VERSION-bin-hadoop$HADOOP_VERSION
-
 echo "Obtaining Spark master"
 SPARK_MASTER_NAME="twitter_sparkMaster_1"
 INFINISPAN_NAME="twitter_infinispan1_1"
@@ -26,5 +17,4 @@ SPARK_MASTER="$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $SPAR
 INFINISPAN_MASTER="$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $INFINISPAN_NAME)"
 
 echo "Submitting the job"
-$SPARK_HOME/bin/spark-submit  --class $1 --master spark://$SPARK_MASTER:7077 target/scala-2.10/infinispan-spark-twitter.jar ${INFINISPAN_MASTER} $2 $3 $4 $5
-
+docker exec -it $SPARK_MASTER_NAME /usr/local/spark/bin/spark-submit --master spark://$SPARK_MASTER:7077 --class $1 /usr/local/code/infinispan-spark-twitter.jar ${INFINISPAN_MASTER} $2 $3 $4 $5

@@ -4,6 +4,8 @@ infinispan2:
   image: gustavonalle/infinispan-server:INFINISPAN_VERSION
 sparkMaster:
   image: gustavonalle/spark:SPARK_VERSION
+  volumes:
+    - target/scala-2.10/:/usr/local/code
 sparkSlave:
   image: gustavonalle/spark:SPARK_VERSION
   links:
