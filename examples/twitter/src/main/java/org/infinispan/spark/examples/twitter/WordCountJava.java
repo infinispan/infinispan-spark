@@ -69,7 +69,7 @@ public class WordCountJava {
       List<Tuple2<String, Integer>> results = infinispanRDD.values().map(Tweet::getText)
               .flatMap(s -> stream(s.split(" ")).collect(toList()))
               .map(s -> s.replaceAll("[^a-zA-Z ]", ""))
-              .filter(s -> !stopWords.contains(s.toLowerCase()))
+              .filter(s -> !stopWords.contains(s.toLowerCase()) && !s.isEmpty())
               .mapToPair(word -> new Tuple2<>(word, 1))
               .reduceByKey((a, b) -> a + b)
               .takeOrdered(20, (SerializableComparator<Tuple2<String, Integer>>) (o1, o2) -> o2._2().compareTo(o1._2()));

@@ -36,7 +36,7 @@ object WordCountScala {
       val results = infinispanRDD.values
               .flatMap(_.getText.split(" "))
               .map(_.replaceAll("[^a-zA-Z ]", ""))
-              .filter(s => !stopWords.contains(s.toLowerCase))
+              .filter(s => !stopWords.contains(s.toLowerCase) && s.nonEmpty)
               .map((_, 1))
               .reduceByKey(_ + _)
               .sortBy(_._2, ascending = false)
