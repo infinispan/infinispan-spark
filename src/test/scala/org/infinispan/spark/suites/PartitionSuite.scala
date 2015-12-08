@@ -82,6 +82,8 @@ class PartitionSuite extends FunSuite with Matchers {
             mapAsJavaMap(segmentsPerServer.mapValues(setAsJavaSet))
 
          override def getNumSegments: Int = numSegments
+
+         override def getTopologyId = 0
       })(partitions)
    }
 
@@ -111,6 +113,8 @@ class PartitionSuite extends FunSuite with Matchers {
          override def getSegmentsPerServer = mapAsJavaMap(reverse(s).mapValues(setAsJavaSet))
 
          override def getNumSegments: Int = numSegments
+
+         override def getTopologyId = 0
       }
    }
 
