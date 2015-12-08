@@ -114,6 +114,10 @@ Sample output:
 [United States,3]
 ```
 
-### 5. Stop containers
+### 5. Changing code
+
+Source code for the samples can be changed without a docker container restart, but a ```./sbt examples/assembly``` is needed.
+
+### 6. Stop containers
 
 ```docker-compose stop```
