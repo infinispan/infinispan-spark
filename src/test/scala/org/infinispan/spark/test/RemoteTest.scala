@@ -17,7 +17,7 @@ sealed trait RemoteTest {
    protected def getRemoteCache[K,V]: RemoteCache[K, V] = remoteCacheManager.getCache(getCacheName)
 
    protected lazy val remoteCacheManager = new RemoteCacheManager(
-      new ConfigurationBuilder().addServer().host("localhost").port(getServerPort).pingOnStartup(true).build
+      new ConfigurationBuilder().addServer().host("localhost").port(getServerPort).build
    )
 
    def getCacheName: String = getClass.getName

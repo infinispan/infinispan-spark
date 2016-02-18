@@ -84,7 +84,7 @@ public class StreamConsumerJava {
       private final RemoteCache<Long, Tweet> cache;
 
       public CacheStatus(String master) {
-         Configuration configuration = new ConfigurationBuilder().addServers(master).pingOnStartup(true).create();
+         Configuration configuration = new ConfigurationBuilder().addServers(master).create();
          cache = new RemoteCacheManager(configuration).getCache();
       }
 

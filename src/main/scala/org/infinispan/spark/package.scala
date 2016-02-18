@@ -29,7 +29,7 @@ package object spark {
 
       private class InfinispanWriteJob(val configuration: Properties) extends Serializable {
          private def getCacheManager: RemoteCacheManager = {
-            val builder = new ConfigurationBuilder().withProperties(configuration).pingOnStartup(true)
+            val builder = new ConfigurationBuilder().withProperties(configuration)
             new RemoteCacheManager(builder.build())
          }
 
