@@ -86,7 +86,7 @@ object ClusterSample {
 
       cluster.createCache[Int,Runner]("my-test-cache", CacheType.DISTRIBUTED, Some(cacheConfig))
 
-      val builder = new ConfigurationBuilder().addServer().host("localhost").port(cluster.getFirstServer.getHotRodPort).pingOnStartup(true).build
+      val builder = new ConfigurationBuilder().addServer().host("localhost").port(cluster.getFirstServer.getHotRodPort).build
 
       val cache: RemoteCache[Int,Runner] = new RemoteCacheManager(builder).getCache("my-test-cache")
 
