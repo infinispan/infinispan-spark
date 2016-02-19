@@ -15,7 +15,7 @@ trait Spark extends BeforeAndAfterAll {
    private lazy val config: SparkConf = createSparkConfig
    protected var sc: SparkContext = _
 
-   def createSparkConfig = new SparkConf().setMaster("local[8]").setAppName(this.getClass.getName)
+   def createSparkConfig = new SparkConf().setMaster("local[8]").setAppName(this.getClass.getName).set("spark.driver.host","127.0.0.1")
 
    def createInfinispanRDD[K, V] = {
       new InfinispanRDD[K, V](sc, configuration = getConfiguration)
