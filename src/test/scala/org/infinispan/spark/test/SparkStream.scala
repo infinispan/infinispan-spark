@@ -18,7 +18,7 @@ trait SparkStream extends BeforeAndAfterEach {
    protected var sc: SparkContext = _
    protected var ssc: StreamingContext = _
 
-   private lazy val config: SparkConf = new SparkConf().setMaster("local[8]").setAppName(this.getClass.getName)
+   private lazy val config: SparkConf = new SparkConf().setMaster("local[8]").setAppName(this.getClass.getName).set("spark.driver.host","127.0.0.1")
 
    override protected def beforeEach(): Unit = {
       sc = new SparkContext(config)

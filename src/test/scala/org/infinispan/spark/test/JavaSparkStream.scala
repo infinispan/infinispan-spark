@@ -16,6 +16,7 @@ trait JavaSparkStream extends BeforeAndAfterEach {
    private lazy val config: SparkConf = new SparkConf().setMaster("local[4]")
            .setAppName(this.getClass.getName)
            .set("spark.serializer", classOf[JBossMarshallingSerializer].getName)
+           .set("spark.driver.host","127.0.0.1")
 
    protected var jssc: JavaStreamingContext = _
    protected var jsc: JavaSparkContext = _
