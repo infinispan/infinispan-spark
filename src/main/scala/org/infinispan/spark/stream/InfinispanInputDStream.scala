@@ -24,7 +24,7 @@ class InfinispanInputDStream[K, V](@transient val ssc_ : StreamingContext, stora
 private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: Properties) extends Receiver[(K, V, ClientEvent.Type)](storageLevel) {
 
    @transient private lazy val remoteCache = {
-      val rcm = new RemoteCacheManager(new ConfigurationBuilder().withProperties(configuration).pingOnStartup(true).build())
+      val rcm = new RemoteCacheManager(new ConfigurationBuilder().withProperties(configuration).build())
       val optCacheName = Option(configuration.getProperty(InfinispanRDD.CacheName))
       optCacheName.map(rcm.getCache(_)).getOrElse(rcm.getCache())
    }

@@ -118,7 +118,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       "start" -> "eager"
    )
 
-   lazy val remoteCacheManager = new RemoteCacheManager(new ConfigurationBuilder().addServer().host(Host).port(getHotRodPort).pingOnStartup(true).build)
+   lazy val remoteCacheManager = new RemoteCacheManager(new ConfigurationBuilder().addServer().host(Host).port(getHotRodPort).build)
 
    private var launcher: Process = _
 
