@@ -129,7 +129,7 @@ simpleRdd.writeToInfinispan(config)
 
 Package for Scala 2.11: ```./sbt package```  
 Package for Scala 2.10 and 2.11: ```./sbt +package```  
-Create examples uberjar: ```./sbt examples/assembly```  
+Create examples uberjar: ```./sbt +examples/assembly```  
 Run all tests: ```./sbt +test```
 Create code coverage report: ```./sbt clean coverage test coverageReport```
 
