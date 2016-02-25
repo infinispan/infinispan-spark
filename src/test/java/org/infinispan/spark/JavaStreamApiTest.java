@@ -8,6 +8,8 @@ import org.apache.spark.streaming.scheduler.StreamingListener;
 import org.apache.spark.streaming.scheduler.StreamingListenerBatchCompleted;
 import org.apache.spark.streaming.scheduler.StreamingListenerBatchStarted;
 import org.apache.spark.streaming.scheduler.StreamingListenerBatchSubmitted;
+import org.apache.spark.streaming.scheduler.StreamingListenerOutputOperationCompleted;
+import org.apache.spark.streaming.scheduler.StreamingListenerOutputOperationStarted;
 import org.apache.spark.streaming.scheduler.StreamingListenerReceiverError;
 import org.apache.spark.streaming.scheduler.StreamingListenerReceiverStarted;
 import org.apache.spark.streaming.scheduler.StreamingListenerReceiverStopped;
@@ -58,7 +60,7 @@ public class JavaStreamApiTest {
 
       Set<Tuple3<Integer, Person, ClientEvent.Type>> streamDump = new HashSet<>();
 
-      inputDStream.foreachRDD((v1, v2) -> {
+      inputDStream.foreachRDD(v1 -> {
          streamDump.addAll(v1.collect());
          return null;
       });
@@ -83,38 +85,50 @@ public class JavaStreamApiTest {
       return new Person("name" + seed, seed, null);
    }
 
-   private interface ReceiverStartListener extends StreamingListener {
+   private class ReceiverStartListener implements StreamingListener {
       @Override
-      void onReceiverStarted(StreamingListenerReceiverStarted receiverStarted);
-
-      @Override
-      default void onReceiverError(StreamingListenerReceiverError receiverError) {
+      public void onReceiverStarted(StreamingListenerReceiverStarted receiverStarted) {
       }
 
       @Override
-      default void onReceiverStopped(StreamingListenerReceiverStopped receiverStopped) {
+      public void onReceiverError(StreamingListenerReceiverError receiverError) {
       }
 
       @Override
-      default void onBatchSubmitted(StreamingListenerBatchSubmitted batchSubmitted) {
+      public void onReceiverStopped(StreamingListenerReceiverStopped receiverStopped) {
       }
 
       @Override
-      default void onBatchStarted(StreamingListenerBatchStarted batchStarted) {
+      public void onBatchSubmitted(StreamingListenerBatchSubmitted batchSubmitted) {
       }
 
       @Override
-      default void onBatchCompleted(StreamingListenerBatchCompleted batchCompleted) {
+      public void onBatchStarted(StreamingListenerBatchStarted batchStarted) {
+      }
+
+      @Override
+      public void onBatchCompleted(StreamingListenerBatchCompleted batchCompleted) {
+      }
+
+      @Override
+      public void onOutputOperationStarted(StreamingListenerOutputOperationStarted outputOperationStarted) {
+      }
+
+      @Override
+      public void onOutputOperationCompleted(StreamingListenerOutputOperationCompleted outputOperationCompleted) {
       }
    }
 
    private void executeAfterReceiverStarted(JavaStreamingContext context, Runnable code) {
-      context.addStreamingListener((ReceiverStartListener) receiverStarted -> {
-         try {
-            Thread.sleep(1000);
-         } catch (InterruptedException ignored) {
+      context.addStreamingListener(new ReceiverStartListener() {
+         @Override
+         public void onReceiverStarted(StreamingListenerReceiverStarted receiverStarted) {
+            try {
+               Thread.sleep(1000);
+            } catch (InterruptedException ignored) {
+            }
+            code.run();
          }
-         code.run();
       });
    }
 
