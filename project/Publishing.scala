@@ -30,7 +30,7 @@ object Publishing {
    lazy val issues =
       <issueManagement>
          <system>jira</system>
-         <url>https://issues.jboss.org/browse/ISPN</url>
+         <url>https://issues.jboss.org/browse/ISPRK</url>
       </issueManagement>
 
    val snapshotRepo = "JBoss Snapshot Repository" at "https://repository.jboss.org/nexus/content/repositories/snapshots"

@@ -1,13 +1,14 @@
-import sbt._
-import sbt.Keys._
-import sbtassembly._
-import sbtassembly.AssemblyKeys._
-
 import Deps._
+import sbt.Keys._
+import sbt._
+import sbtassembly.AssemblyKeys._
+import sbtassembly._
 
 object ProjectBuild extends Build {
 
    val extractServer = taskKey[Seq[File]]("Extract infinispan server")
+   lazy val getSparkVersion = taskKey[Unit]("Get Spark version used")
+   lazy val getInfinispanVersion = taskKey[Unit]("Get Infinispan version used")
 
    lazy val core = (project in file("."))
          .settings(commonSettings: _ *)
@@ -26,8 +27,14 @@ object ProjectBuild extends Build {
                (destination ** "*infinispan-server*").get.head.renameTo(destinationWithoutVersion)
                (destinationWithoutVersion ** AllPassFilter).get
             },
+            getSparkVersion := {
+               println(Versions.sparkVersion)
+            },
+            getInfinispanVersion := {
+               println(Versions.infinispanVersion)
+            },
             resourceGenerators in Test <+= extractServer
-         ).disablePlugins(sbtassembly.AssemblyPlugin)
+         ).disablePlugins(sbtassembly.AssemblyPlugin).aggregate(examplesRef)
 
    lazy val examples = (project in file("examples/twitter"))
          .dependsOn(core)
@@ -42,12 +49,15 @@ object ProjectBuild extends Build {
                case "features.xml" => MergeStrategy.first
                case x => val oldStrategy = (assemblyMergeStrategy in assembly).value
                   oldStrategy(x)
-            }
-         ).aggregate(core)
+            },
+            publishLocal := {},
+            publish := {}
+         )
+   lazy val examplesRef = LocalProject("examples")
 
    def commonSettings = Seq(
       scalaVersion := "2.11.7",
-      crossScalaVersions := Seq("2.10.4", "2.11.7"),
+      crossScalaVersions := Seq("2.10.5", "2.11.7"),
       libraryDependencies ++= Seq(sparkCore, sparkStreaming, sparkSQL),
 
       scalacOptions <++= scalaVersion map { v =>
