@@ -3,8 +3,9 @@ package org.infinispan.spark.examples.twitter
 import java.util.Properties
 
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.{SparkConf, SparkContext}
+import org.infinispan.spark.examples.twitter.Sample.getSparkConf
 import org.infinispan.spark.rdd.InfinispanRDD
 
 /**
@@ -27,7 +28,7 @@ object SQLAggregationScala {
       Logger.getLogger("org").setLevel(Level.WARN)
 
       // Create Spark Context
-      val conf = new SparkConf().setAppName("spark-infinispan-rdd-aggregation-scala")
+      val conf = getSparkConf("spark-infinispan-rdd-aggregation-scala")
       val sc = new SparkContext(conf)
 
       // Populate infinispan properties
@@ -45,7 +46,7 @@ object SQLAggregationScala {
 
       // Run the Query, collect and print results
       sqlContext.sql("SELECT country, count(*) as c from tweets WHERE country != 'N/A' GROUP BY country ORDER BY c desc")
-            .collect().take(20).foreach(println)
+              .collect().take(20).foreach(println)
 
    }
 

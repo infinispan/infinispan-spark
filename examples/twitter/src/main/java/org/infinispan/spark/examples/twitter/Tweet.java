@@ -16,7 +16,7 @@ public class Tweet {
    private final Long id;
    private final String user;
    private final String country;
-   private final Long retweet;
+   private final Integer retweet;
    private final String text;
 
    public Long getId() {
@@ -31,7 +31,7 @@ public class Tweet {
       return country;
    }
 
-   public Long getRetweet() {
+   public Integer getRetweet() {
       return retweet;
    }
 
@@ -39,7 +39,7 @@ public class Tweet {
       return text;
    }
 
-   public Tweet(Long id, String user, String country, Long retweet, String text) {
+   public Tweet(Long id, String user, String country, Integer retweet, String text) {
       this.id = id;
       this.user = user;
       this.country = country;
@@ -53,7 +53,7 @@ public class Tweet {
          UnsignedNumeric.writeUnsignedLong(output, object.id);
          output.writeUTF(object.user);
          output.writeUTF(object.country);
-         UnsignedNumeric.writeUnsignedLong(output, object.retweet);
+         UnsignedNumeric.writeUnsignedInt(output, object.retweet);
          output.writeUTF(object.text);
       }
 
@@ -62,7 +62,7 @@ public class Tweet {
          long id = UnsignedNumeric.readUnsignedLong(input);
          String user = input.readUTF();
          String country = input.readUTF();
-         long retweet = UnsignedNumeric.readUnsignedLong(input);
+         int retweet = UnsignedNumeric.readUnsignedInt(input);
          String text = input.readUTF();
          return new Tweet(id, user, country, retweet, text);
       }

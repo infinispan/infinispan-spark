@@ -1,0 +1,16 @@
+infinispan1: 
+  image: gustavonalle/infinispan-server:$INFINISPAN_VERSION
+  container_name: ispn-1
+infinispan2:
+  image: gustavonalle/infinispan-server:$INFINISPAN_VERSION
+  container_name: ispn-2
+sparkMaster:
+  image: gustavonalle/spark:$SPARK_VERSION
+  container_name: sparkMaster
+  volumes:
+    - $PWD/target:/usr/local/code
+sparkSlave:
+  image: gustavonalle/spark:$SPARK_VERSION
+  container_name: sparkSlave
+  links:
+    - sparkMaster:master

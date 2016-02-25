@@ -7,6 +7,7 @@ import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.twitter.TwitterUtils
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}
+import org.infinispan.spark.examples.twitter.Sample.getSparkConf
 import org.infinispan.spark.stream._
 
 /**
@@ -26,7 +27,7 @@ object StreamProducerScala {
       System.setProperty("twitter4j.oauth.accessToken", args(3))
       System.setProperty("twitter4j.oauth.accessTokenSecret", args(4))
 
-      val conf = new SparkConf().setAppName("spark-infinispan-stream-producer-scala")
+      val conf = getSparkConf("spark-infinispan-stream-producer-scala")
       val sparkContext = new SparkContext(conf)
 
       val streamingContext = new StreamingContext(sparkContext, Seconds(1))
@@ -44,7 +45,7 @@ object StreamProducerScala {
 
       val infinispanStream = new InfinispanInputDStream[Long, Tweet](streamingContext, StorageLevel.MEMORY_ONLY, infinispanProperties)
 
-      val countryDStream = infinispanStream.transform(rdd => rdd.collect { case (k, v, _)  => (v.getCountry, 1) }.reduceByKey(_ + _))
+      val countryDStream = infinispanStream.transform(rdd => rdd.collect { case (k, v, _) => (v.getCountry, 1) }.reduceByKey(_ + _))
 
       val lastMinuteDStream = countryDStream.reduceByKeyAndWindow(_ + _, Seconds(60))
 

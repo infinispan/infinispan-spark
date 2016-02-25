@@ -9,6 +9,7 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.infinispan.client.hotrod.RemoteCacheManager
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
+import org.infinispan.spark.examples.twitter.Sample.getSparkConf
 import org.infinispan.spark.stream._
 
 import scala.collection.JavaConversions._
@@ -34,7 +35,7 @@ object StreamConsumerScala {
       System.setProperty("twitter4j.oauth.accessToken", args(3))
       System.setProperty("twitter4j.oauth.accessTokenSecret", args(4))
 
-      val conf = new SparkConf().setAppName("spark-infinispan-stream-consumer-scala")
+      val conf = getSparkConf("spark-infinispan-stream-consumer-scala")
       val sparkContext = new SparkContext(conf)
 
       val streamingContext = new StreamingContext(sparkContext, Seconds(1))

@@ -116,7 +116,7 @@ Sample output:
 
 ### 5. Changing code
 
-Source code for the samples can be changed without a docker container restart, but a ```./sbt examples/assembly``` is needed.
+Source code for the samples can be changed without a docker container restart, but a ```./sbt +examples/assembly``` is needed.
 
 ### 6. Stop containers
 

@@ -3,8 +3,8 @@
 set -e
 
 echo "Obtaining Spark master"
-SPARK_MASTER_NAME="twitter_sparkMaster_1"
-INFINISPAN_NAME="twitter_infinispan1_1"
+SPARK_MASTER_NAME="sparkMaster"
+INFINISPAN_NAME="ispn-1"
 
 STATE=$(docker inspect --format="{{ .State.Running  }}" $SPARK_MASTER_NAME || exit 1;)
 if [ "$STATE" == "false" ]

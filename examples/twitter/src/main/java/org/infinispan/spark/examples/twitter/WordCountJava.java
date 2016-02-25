@@ -45,7 +45,7 @@ public class WordCountJava {
       // Reduce the log level in the driver
       Logger.getLogger("org").setLevel(Level.WARN);
 
-      SparkConf conf = new SparkConf().setAppName("spark-infinispan-wordcount-java");
+      SparkConf conf = Sample.getSparkConf("spark-infinispan-wordcount-java");
 
       Set<String> stopWords;
 

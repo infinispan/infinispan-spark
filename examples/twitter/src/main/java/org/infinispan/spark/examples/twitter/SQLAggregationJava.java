@@ -33,7 +33,7 @@ public class SQLAggregationJava {
       // Reduce the log level in the driver
       Logger.getLogger("org").setLevel(Level.WARN);
 
-      SparkConf conf = new SparkConf().setAppName("spark-infinispan-sql-aggregation-java");
+      SparkConf conf = Sample.getSparkConf("spark-infinispan-sql-aggregation-java");
 
       // Create java spark context
       JavaSparkContext javaSparkContext = new JavaSparkContext(conf);

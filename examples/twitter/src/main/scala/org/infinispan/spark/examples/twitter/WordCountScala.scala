@@ -4,6 +4,7 @@ import java.util.Properties
 
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.{SparkConf, SparkContext}
+import org.infinispan.spark.examples.twitter.Sample.getSparkConf
 import org.infinispan.spark.rdd.InfinispanRDD
 
 import scala.io.Source.fromInputStream
@@ -22,7 +23,7 @@ object WordCountScala {
       Logger.getLogger("org").setLevel(Level.WARN)
       val infinispanHost = args(0)
 
-      val conf = new SparkConf().setAppName("spark-infinispan-wordcount-scala")
+      val conf = getSparkConf("spark-infinispan-wordcount-scala")
       val sc = new SparkContext(conf)
 
       val stopWords =

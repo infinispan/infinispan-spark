@@ -48,7 +48,7 @@ public class StreamConsumerJava {
       // Reduce the log level in the driver
       Logger.getLogger("org").setLevel(Level.WARN);
 
-      SparkConf conf = new SparkConf().setAppName("spark-infinispan-stream-consumer-java");
+      SparkConf conf = Sample.getSparkConf("spark-infinispan-stream-consumer-java");
 
       // Create the streaming context
       JavaStreamingContext javaStreamingContext = new JavaStreamingContext(conf, Seconds.apply(1));

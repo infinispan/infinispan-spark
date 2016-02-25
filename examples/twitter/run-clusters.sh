@@ -8,10 +8,11 @@ function wait_for_ispn() {
 }
 command -v docker-compose >/dev/null 2>&1 || { echo >&2 "docker-compose not installed.  Aborting."; exit 1; }
 
-INFINISPAN_VERSION=$(cat ../../project/Versions.scala | grep infinispanVersion | awk '{print $4}' | sed 's/\"//g')
-SPARK_VERSION=$(cat ../../project/Versions.scala | grep sparkVersion | awk '{print $4}' | sed 's/\"//g')
+INFINISPAN_VERSION=$(cd ../../ && sbt --error  'set showSuccess := false' getInfinispanVersion)
+SPARK_VERSION=$(cd ../../ && sbt --error  'set showSuccess := false' getSparkVersion)
 
-sed 's/INFINISPAN_VERSION/'$INFINISPAN_VERSION'/g; s/SPARK_VERSION/'$SPARK_VERSION'/g' docker-compose.yml.tt > docker-compose.yml
+export INFINISPAN_VERSION SPARK_VERSION
+
 docker-compose up -d
 
-wait_for_ispn "twitter_infinispan1_1"
+wait_for_ispn "ispn-1"

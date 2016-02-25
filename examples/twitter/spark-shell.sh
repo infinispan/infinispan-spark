@@ -2,8 +2,8 @@
 
 set -e
 
-INFINISPAN_NAME="twitter_infinispan1_1"
-SPARK_MASTER_NAME="twitter_sparkMaster_1"
+INFINISPAN_NAME="ispn-1"
+SPARK_MASTER_NAME="sparkMaster"
 SPARK_MASTER="$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $SPARK_MASTER_NAME)"
 INFINISPAN_IP="$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $INFINISPAN_NAME)"
 
