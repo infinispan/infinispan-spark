@@ -115,7 +115,8 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 
    val DefaultCacheConfig = Map(
       "statistics" -> "true",
-      "start" -> "eager"
+      "start" -> "eager",
+      "template" -> "false"
    )
 
    lazy val remoteCacheManager = new RemoteCacheManager(new ConfigurationBuilder().addServer().host(Host).port(getHotRodPort).build)
