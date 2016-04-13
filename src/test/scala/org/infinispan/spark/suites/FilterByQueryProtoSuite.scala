@@ -86,7 +86,7 @@ class FilterByQueryProtoSuite extends FunSuite with Spark with MultipleServers w
 
       val query = Search.getQueryFactory(defaultCache)
             .from(classOf[Person]).having("address.number").gt(10)
-            .toBuilder[RemoteQuery].build()
+            .toBuilder.build()
 
       val filteredRdd = rdd.filterByQuery[Person](query, classOf[Person])
 

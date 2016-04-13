@@ -233,7 +233,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
             createAddOpWithAttributes(DefaultCacheConfig)
 
          val cacheContainerPath = ("subsystem" -> InfinispanSubsystem) / ("cache-container" -> cacheContainer)
-         val configPath = cacheContainerPath / ("configurations" -> "CONFIGURATIONS") / (s"$cacheType-configuration" -> cacheName)
+         val configPath = cacheContainerPath / ("configurations" -> "CONFIGURATIONS") / (s"$cacheType-configuration" -> s"$cacheName-conf")
 
          // Create empty cache configuration
          val ops = ListBuffer(ModelNode() at configPath op params)
@@ -242,7 +242,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
          config.foreach(ops += createInsertOperations(configPath, _))
 
          // Create cache based on configuration
-         ops += ModelNode() at cacheContainerPath / (cacheType.toString -> cacheName) op 'add ('configuration -> cacheName)
+         ops += ModelNode() at cacheContainerPath / (cacheType.toString -> cacheName) op 'add ('configuration -> s"$cacheName-conf")
 
          executeOperation[Unit](ModelNode.composite(ops))
       }

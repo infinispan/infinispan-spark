@@ -26,8 +26,6 @@ with Logging {
    private def isServerValid = delegate.getServers.contains(preferredServer)
 
    override def setServers(servers: util.Collection[SocketAddress]): Unit = delegate.setServers(servers)
-
-   override def nextServer(): SocketAddress = delegate.nextServer(null)
 }
 
 
