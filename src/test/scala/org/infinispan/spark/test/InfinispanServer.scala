@@ -94,6 +94,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    val PortOffsetConfig = "-Djboss.socket.binding.port-offset"
    val StackConfig = "-Djboss.default.jgroups.stack=tcp"
    val TimeoutConfig = "-Djgroups.join_timeout=1000"
+   val DataDir = "-Djboss.server.data.dir"
    val Protocol = "http-remoting"
    val InfinispanSubsystem = "datagrid-infinispan"
    val Host = "localhost"
@@ -131,6 +132,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       val args = ManagementFactory.getRuntimeMXBean.getInputArguments
       val isDebug = args.contains("-Dserver-debug")
       val logDir = Paths.get(serverHome, "logs")
+      val dataDir = Paths.get(serverHome, "state")
       val launch = Paths.get(serverHome, BinFolder, LaunchScript)
       new File(launch.toString).setExecutable(true)
       val cmd = mutable.ListBuffer[String](Paths.get(serverHome, BinFolder, LaunchScript).toString)
@@ -142,6 +144,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       }
       cmd += s"$NameNodeConfig=$name"
       cmd += s"$LogDirConfig=$logDir/$name"
+      cmd += s"$DataDir=$dataDir/$name"
       if (portOffSet > 0) {
          cmd += s"$PortOffsetConfig=$portOffSet"
       }
