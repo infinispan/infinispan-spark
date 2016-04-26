@@ -101,6 +101,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    val ShutDownOp = "shutdown"
    val ManagementPort = 9990
    val HotRodPort = 11222
+   val baseDebugPort = 8787
    @volatile private var started = false
 
    private lazy val serverHome = if (Paths.get(location).toFile.exists()) location
@@ -136,7 +137,10 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       val launch = Paths.get(serverHome, BinFolder, LaunchScript)
       new File(launch.toString).setExecutable(true)
       val cmd = mutable.ListBuffer[String](Paths.get(serverHome, BinFolder, LaunchScript).toString)
-      if(isDebug) cmd += "--debug"
+      if(isDebug) {
+         cmd += s"--debug"
+         cmd += s"${baseDebugPort + portOffSet}"
+      }
       if (clustered) {
          cmd += s"-c=$ClusteredConfig"
          cmd += StackConfig
