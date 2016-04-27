@@ -107,7 +107,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    private lazy val serverHome = if (Paths.get(location).toFile.exists()) location
    else {
       Option(getClass.getResource(location)).map(_.getPath) match {
-         case None => throw new IllegalArgumentException(s"Server not found in location $location.")
+         case None => throw new IllegalArgumentException(s"Server not found in location $location, use './sbt test:compile' first.")
          case Some(c) => c
       }
    }
