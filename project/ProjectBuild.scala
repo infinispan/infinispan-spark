@@ -13,6 +13,7 @@ object ProjectBuild extends Build {
    lazy val core = (project in file("."))
          .settings(commonSettings: _ *)
          .settings(Publishing.settings: _*)
+         .settings(net.virtualvoid.sbt.graph.Plugin.graphSettings: _*)
          .settings(
             moduleName := "infinispan-spark",
             libraryDependencies ++= Seq(sparkCore, sparkStreaming, sparkSQL, sparkHive, hotRodClient, queryDSL, jcip,
