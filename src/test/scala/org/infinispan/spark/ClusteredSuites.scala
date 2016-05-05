@@ -4,7 +4,6 @@ import org.infinispan.spark.suites._
 import org.infinispan.spark.test.Cluster
 import org.scalatest.{BeforeAndAfterAll, Suites}
 
-import scala.language.postfixOps
 
 /**
  * Aggregates all suites that requires a running cluster.

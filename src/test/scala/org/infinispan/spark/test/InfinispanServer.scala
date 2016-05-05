@@ -44,6 +44,7 @@ class FilterDef(val factoryImpl: Class[_ <: KeyValueFilterConverterFactory[_, _,
  */
 private[test] class Cluster(size: Int, location: String) {
    private val _servers = mutable.ListBuffer[InfinispanServer]()
+   private val _failed_servers = mutable.ListBuffer[InfinispanServer]()
    val CacheContainer = "clustered"
    @volatile private var started = false
 
@@ -51,23 +52,45 @@ private[test] class Cluster(size: Int, location: String) {
       override def run(): Unit = Try(shutDown())
    })
 
+   def startServers(servers: Seq[InfinispanServer], timeOut: Duration): Boolean = {
+      val futureServers = servers.map(s => Future(s.startAndWaitForCluster(_servers.size + servers.size, timeOut)))
+      val outcome = Future.sequence(futureServers)
+      Await.ready(outcome, timeOut)
+      val running = outcome.value match {
+         case Some(Failure(e)) => throw new RuntimeException(e)
+         case _ => true
+      }
+      running
+   }
+
    def isStarted = started
 
    def startAndWait(duration: Duration) = {
       val servers = for (i <- 0 until size) yield {
          new InfinispanServer(location, s"server$i", clustered = true, i * 1000)
       }
-      _servers ++= servers
-      val futureServers = _servers.map(s => Future(s.startAndWaitForCluster(_servers.size, duration)))
-      val outcome = Future.sequence(futureServers)
-      Await.ready(outcome, duration)
-      outcome.value match {
-         case Some(Failure(e)) => throw new RuntimeException(e)
-         case _ => started = true
+      if (startServers(servers, duration)) {
+         _servers ++= servers
+         started = true
       }
    }
 
-   def shutDown() = if (started) _servers.par.foreach(_.shutDown())
+   def shutDown() = if (started) {
+      _servers.par.foreach(_.shutDown())
+      _servers.clear()
+      started = false
+   }
+
+   def failServer(i: Int) = if (i < _servers.size) {
+      val failedServer = _servers.remove(i)
+      failedServer.shutDown()
+      _failed_servers += failedServer
+   }
+
+   def restoreFailed(timeOut: Duration) = if (startServers(_failed_servers, timeOut)) {
+      _servers ++= _failed_servers
+      _failed_servers.clear()
+   }
 
    def getFirstServer = _servers.head
 
@@ -115,9 +138,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
          case Some(c) => c
       }
    }
-   val client = {
-      new Client().connect(port = getManagementPort)
-   }
+   val client = new Client()
 
    val DefaultCacheConfig = Map(
       "statistics" -> "true",
@@ -171,6 +192,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 
          override def buffer[T](f: => T): T = f
       })
+      client.connect(port = getManagementPort)
       started = true
    }
 
@@ -381,6 +403,10 @@ object Cluster {
 
    def shutDown() = cluster.shutDown()
 
+   def failServer(i: Int) = cluster.failServer(i)
+
+   def restore() = cluster.restoreFailed(StartTimeout)
+
    def createCache(name: String, cacheType: CacheType.Value, config: Option[ModelNode]) = cluster.createCache(name, cacheType, config)
 
    def getFirstServerPort = cluster.getFirstServer.getHotRodPort
@@ -388,4 +414,5 @@ object Cluster {
    def getClusterSize = cluster._servers.size
 
    def getServerList = cluster.getServerList
+
 }
