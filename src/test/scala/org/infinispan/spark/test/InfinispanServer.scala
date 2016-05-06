@@ -118,7 +118,8 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    val DefaultCacheConfig = Map(
       "statistics" -> "true",
       "start" -> "eager",
-      "template" -> "false"
+      "template" -> "false",
+      "owners" -> "2"
    )
 
    lazy val remoteCacheManager = new RemoteCacheManager(new ConfigurationBuilder().addServer().host(Host).port(getHotRodPort).build)
@@ -240,7 +241,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
             createAddOpWithAttributes(DefaultCacheConfig)
 
          val cacheContainerPath = ("subsystem" -> InfinispanSubsystem) / ("cache-container" -> cacheContainer)
-         val configPath = cacheContainerPath / ("configurations" -> "CONFIGURATIONS") / (s"$cacheType-configuration" -> s"$cacheName-conf")
+         val configPath = cacheContainerPath / ("configurations" -> "CONFIGURATIONS") / (s"$cacheType-configuration" -> s"$cacheName")
 
          // Create empty cache configuration
          val ops = ListBuffer(ModelNode() at configPath op params)
@@ -249,7 +250,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
          config.foreach(ops += createInsertOperations(configPath, _))
 
          // Create cache based on configuration
-         ops += ModelNode() at cacheContainerPath / (cacheType.toString -> cacheName) op 'add ('configuration -> s"$cacheName-conf")
+         ops += ModelNode() at cacheContainerPath / (cacheType.toString -> cacheName) op 'add ('configuration -> s"$cacheName")
 
          executeOperation[Unit](ModelNode.composite(ops))
       }
