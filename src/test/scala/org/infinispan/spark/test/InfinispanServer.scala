@@ -75,6 +75,8 @@ private[test] class Cluster(size: Int, location: String) {
       _servers.foreach(_.addCache(CacheContainer, name, cacheType, extraConfigs))
    }
 
+   def getServerList = _servers.map( s => s"localhost:${s.getHotRodPort}").mkString(";")
+
    def addFilter(f: FilterDef) = _servers.foreach(_.addFilter(f))
 
    def removeFilter(f: FilterDef) = _servers.head.removeFilter(f)
@@ -211,7 +213,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 
    import ModelNodeResult._
 
-   def getHotRodPort = if (portOffSet == 0) HotRodPort else ManagementPort + portOffSet
+   def getHotRodPort = if (portOffSet == 0) HotRodPort else HotRodPort + portOffSet
 
    private def getManagementPort = if (portOffSet == 0) ManagementPort else ManagementPort + portOffSet
 
@@ -373,4 +375,8 @@ object Cluster {
    def createCache(name: String, cacheType: CacheType.Value, config: Option[ModelNode]) = cluster.createCache(name, cacheType, config)
 
    def getFirstServerPort = cluster.getFirstServer.getHotRodPort
+
+   def getClusterSize = cluster._servers.size
+
+   def getServerList = cluster.getServerList
 }
