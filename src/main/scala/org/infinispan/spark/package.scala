@@ -1,16 +1,29 @@
 package org.infinispan
 
+import java.net.InetSocketAddress
 import java.util.Properties
 
 import org.apache.spark.TaskContext
 import org.apache.spark.rdd.RDD
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
-import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
+import org.infinispan.client.hotrod.{CacheTopologyInfo, RemoteCacheManager}
 import org.infinispan.spark.rdd.InfinispanRDD
 
 import scala.collection.JavaConversions._
 
 package object spark {
+
+   def getCacheTopology(cacheTopology: CacheTopologyInfo) = {
+      val segmentsPerServer = cacheTopology.getSegmentsPerServer
+      segmentsPerServer.keySet.map {
+         case i: InetSocketAddress => s"${i.getHostString}:${i.getPort}"
+      }.mkString(";")
+   }
+
+   def getCache[K, V](config: Properties, rcm: RemoteCacheManager) = {
+      val cacheName = config.getProperty(InfinispanRDD.CacheName)
+      Option(cacheName).map(name => rcm.getCache[K, V](name)).getOrElse(rcm.getCache[K, V])
+   }
 
    implicit class EnhancedProperties(props: Properties) {
       def readWithDefault[T](key: String)(default: T) = read[T](key).getOrElse(default)
@@ -36,8 +49,7 @@ package object spark {
          def runJob(iterator: Iterator[(K, V)], ctx: TaskContext): Unit = {
             val remoteCacheManager = getCacheManager
             ctx.addTaskCompletionListener { f => remoteCacheManager.stop() }
-            val cacheName = configuration.getProperty(InfinispanRDD.CacheName)
-            val cache = Option(cacheName).map(name => remoteCacheManager.getCache(name)).getOrElse(remoteCacheManager.getCache).asInstanceOf[RemoteCache[K, V]]
+            val cache = getCache[K, V](configuration, remoteCacheManager)
             val batchSize = configuration.readWithDefault[Int](InfinispanRDD.WriteBatchSize)(InfinispanRDD.DefaultWriteBatchSize)
             iterator.grouped(batchSize).foreach(kv => cache.putAll(mapAsJavaMap(kv.toMap)))
          }

@@ -12,7 +12,7 @@ import org.infinispan.client.hotrod.annotation._
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.event.{ClientCacheEntryCustomEvent, ClientEvent}
 import org.infinispan.commons.io.UnsignedNumeric
-import org.infinispan.spark.rdd.InfinispanRDD
+import org.infinispan.spark._
 
 /**
  * @author gustavonalle
@@ -25,8 +25,7 @@ private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: Pr
 
    @transient private lazy val remoteCache = {
       val rcm = new RemoteCacheManager(new ConfigurationBuilder().withProperties(configuration).build())
-      val optCacheName = Option(configuration.getProperty(InfinispanRDD.CacheName))
-      optCacheName.map(rcm.getCache(_)).getOrElse(rcm.getCache())
+      getCache[K, V](configuration, rcm)
    }
    @transient private lazy val listener = new EventListener
 

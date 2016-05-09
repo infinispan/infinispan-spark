@@ -1,6 +1,7 @@
 package org.infinispan.spark.rdd
 
 import java.net.InetSocketAddress
+import java.util.Properties
 
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.rdd.RDD
@@ -26,8 +27,8 @@ class FilteredInfinispanRDD[K, V, R](parent: InfinispanRDD[K, V],
                                      filterParams: AnyRef*)
         extends RDD[(K, R)](parent.sc, Nil) {
 
-   def createBuilder(address: InetSocketAddress) = {
-      val builder = parent.createBuilder(address)
+   def createBuilder(address: InetSocketAddress, config: Properties) = {
+      val builder = parent.createBuilder(address, config)
       if (filterQuery.isDefined) builder.marshaller(new ProtoStreamMarshaller)
       builder
    }
@@ -43,8 +44,8 @@ class FilteredInfinispanRDD[K, V, R](parent: InfinispanRDD[K, V],
    @DeveloperApi
    override def compute(split: Partition, context: TaskContext): Iterator[(K, R)] = {
       val (factory, params) = filterQuery.fold((filterFactory.orNull, filterParams))(q => (Filters.ITERATION_QUERY_FILTER_CONVERTER_FACTORY_NAME, Array(q.query)))
-      parent.compute(split, context, address => {
-         val cm = new RemoteCacheManager(createBuilder(address).build())
+      parent.compute(split, context, (address, properties) => {
+         val cm = new RemoteCacheManager(createBuilder(address, properties).build())
          buildSerializationContext(cm)
          cm
       }, factory, params.toArray)
