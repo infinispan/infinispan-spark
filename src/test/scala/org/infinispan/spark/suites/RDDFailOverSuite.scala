@@ -1,6 +1,7 @@
 package org.infinispan.spark.suites
 
 import org.infinispan.client.hotrod.RemoteCache
+import org.infinispan.spark._
 import org.infinispan.spark.domain.Runner
 import org.infinispan.spark.test.TestingUtil._
 import org.infinispan.spark.test._

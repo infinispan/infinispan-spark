@@ -56,7 +56,7 @@ class StreamingFailOverSuite extends FunSuite with SparkStream with MultipleServ
       cache.get(3) shouldBe "value3"
    }
 
-   test("test stream producer with failover") {
+   ignore("test stream producer with failover.") {
       val cache = getRemoteCache.asInstanceOf[RemoteCache[Int, Runner]]
       cache.clear()
 
