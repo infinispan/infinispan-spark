@@ -34,7 +34,9 @@ object ProjectBuild extends Build {
             getInfinispanVersion := {
                println(Versions.infinispanVersion)
             },
-            resourceGenerators in Test <+= extractServer
+            resourceGenerators in Test <+= extractServer,
+            publishArtifact in Test := true,
+            mappings in(Test, packageBin) ~= (_.filter(!_._1.getPath.contains("infinispan-server")))
          ).disablePlugins(sbtassembly.AssemblyPlugin).aggregate(examplesRef)
 
    lazy val examples = (project in file("examples/twitter"))
