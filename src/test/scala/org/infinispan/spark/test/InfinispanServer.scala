@@ -341,7 +341,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 }
 
 object SingleNode {
-   private val server: InfinispanServer = new InfinispanServer("/infinispan-server/", "server1")
+   private val server: InfinispanServer = new InfinispanServer("/infinispan-server/", "standalone")
 
    def start() = if (!server.isStarted) server.startAndWaitForLocalCacheManager()
 
