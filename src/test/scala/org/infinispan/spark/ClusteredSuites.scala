@@ -6,10 +6,11 @@ import org.scalatest.{BeforeAndAfterAll, Suites}
 
 
 /**
- * Aggregates all suites that requires a running cluster.
- */
+  * Aggregates all suites that requires a running cluster.
+  */
 class ClusteredSuites extends Suites(new DistributedSuite, new ReplicatedSuite, new SQLSuite, new StreamingSuite,
-   new FilterByQueryProtoAnnotationSuite, new CustomFilterRDDSuite, new FilterByQueryProtoSuite) with BeforeAndAfterAll {
+   new FilterByQueryProtoAnnotationSuite, new CustomFilterRDDSuite, new FilterByQueryProtoSuite,
+   new RDDFailOverSuite, new StreamingFailOverSuite) with BeforeAndAfterAll {
 
    override protected def beforeAll(): Unit = {
       Cluster.start()
