@@ -2,7 +2,8 @@ package org.infinispan.spark.test
 
 import java.io.File
 import java.lang.management.ManagementFactory
-import java.nio.file.Paths
+import java.nio.file.StandardCopyOption.REPLACE_EXISTING
+import java.nio.file.{Files, Paths}
 
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
@@ -89,10 +90,12 @@ private[test] class Cluster(size: Int, location: String) {
 private[test] class InfinispanServer(location: String, name: String, clustered: Boolean = false, portOffSet: Int = 0) {
    val BinFolder = "bin"
    val DeploymentFolder = "standalone/deployments"
+   val DefaultConfigFolder = "standalone/configuration"
    val LaunchScript = "standalone.sh"
    val NameNodeConfig = "-Djboss.node.name"
    val LogDirConfig = "-Djboss.server.log.dir"
-   val ClusteredConfig = "clustered.xml"
+   val ClusteredConfigDefault = "clustered.xml"
+   val ClusteredConfig = s"clustered-$name.xml"
    val PortOffsetConfig = "-Djboss.socket.binding.port-offset"
    val StackConfig = "-Djboss.default.jgroups.stack=tcp"
    val TimeoutConfig = "-Djgroups.join_timeout=1000"
@@ -132,6 +135,12 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       override def run(): Unit = Try(shutDown())
    })
 
+   def copyConfig = {
+      val sourcePath = Paths.get(serverHome, DefaultConfigFolder, ClusteredConfigDefault)
+      val destinationPath = Paths.get(serverHome, DefaultConfigFolder, ClusteredConfig)
+      if (!destinationPath.toFile.exists) Files.copy(sourcePath, destinationPath, REPLACE_EXISTING)
+   }
+
    def start() = {
       val args = ManagementFactory.getRuntimeMXBean.getInputArguments
       val isDebug = args.contains("-Dserver-debug")
@@ -145,6 +154,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
          cmd += s"${baseDebugPort + portOffSet}"
       }
       if (clustered) {
+         copyConfig
          cmd += s"-c=$ClusteredConfig"
          cmd += StackConfig
          cmd += TimeoutConfig
