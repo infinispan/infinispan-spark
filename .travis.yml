@@ -10,3 +10,6 @@ scala:
 jdk:
   - oraclejdk8
 
+after_failure:
+  - cat /home/travis/build/infinispan/infinispan-spark/target/scala-*/test-classes/infinispan-server/logs/server*/*.log
+
