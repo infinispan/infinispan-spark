@@ -1,5 +1,5 @@
-import sbt._
 import Versions._
+import sbt._
 
 object Deps {
    // Core deps
@@ -20,6 +20,8 @@ object Deps {
    val scalaDMR = "org.jboss" %% "dmr-repl" % scalaDMRVersion % "test"
    val shrinkWrap = "org.jboss.shrinkwrap" % "shrinkwrap-depchain" % shrinkWrapVersion % "test"
    val infinispanCore = "org.infinispan" % "infinispan-core" % infinispanVersion
+   val log4j = "log4j" % "log4j" % log4jVersion % "test"
+   val sl4jbridge = "org.slf4j" % "slf4j-log4j12" % sl4jVersion % "test"
 
    // Demo deps
    val twitter4jCore = "org.twitter4j" % "twitter4j-core" % twitter4jVersion

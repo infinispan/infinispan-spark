@@ -8,4 +8,6 @@ object Versions {
    val jcipAnnotationsVersion = "1.0"
    val scalaDMRVersion = "0.2.0"
    val shrinkWrapVersion = "1.2.3"
+   val log4jVersion = "1.2.14"
+   val sl4jVersion = "1.7.21"
 }
