@@ -1,5 +1,5 @@
 object Versions {
-   val infinispanVersion = "9.0.0.Alpha2"
+   val infinispanVersion = "9.0.0.Alpha3"
    val protoStreamVersion = "3.0.5.Final"
    val sparkVersion = "1.6.0"
    val scalaTestVersion = "2.2.5"
