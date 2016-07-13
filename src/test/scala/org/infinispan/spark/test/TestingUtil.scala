@@ -9,11 +9,11 @@ import scala.util.{Failure, Success, Try}
 
 object TestingUtil {
 
-   val NumTimes = 10
    val DefaultDuration = 60 seconds
+   val waitBetweenRetries = 500
 
    def waitForCondition(command: () => Boolean, duration: Duration): Unit = {
-      val waitBetweenRetries = duration.toMillis / NumTimes
+      val NumTimes = duration.toMillis.toInt / waitBetweenRetries
       @tailrec
       def waitForCondition(numTimes: Int, sleep: Boolean): Unit = {
          if (sleep) Thread.sleep(waitBetweenRetries)

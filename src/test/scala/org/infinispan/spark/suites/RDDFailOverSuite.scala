@@ -13,9 +13,9 @@ import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
 @DoNotDiscover
-class RDDFailOverSuite extends FunSuite with Matchers with WordCache with Spark with MultipleServers with FailOver {
+class RDDFailOverSuite extends FunSuite with Matchers with Spark with MultipleServers with FailOver {
 
-   override protected def getNumEntries: Int = 100
+   val NumEntries = 1000
 
    override def getCacheType = CacheType.DISTRIBUTED
 
@@ -27,11 +27,15 @@ class RDDFailOverSuite extends FunSuite with Matchers with WordCache with Spark 
    }
 
    test("RDD read failover") {
+      val cache = getRemoteCache.asInstanceOf[RemoteCache[Int, Runner]]
+      cache.clear()
+      (0 until NumEntries).foreach(id => cache.put(id, new Runner(s"name$id", true, id * 10, 20)))
+
       val infinispanRDD = createInfinispanRDD[Int, String]
 
       val ispnIter = infinispanRDD.toLocalIterator
       var count = 0
-      for (i <- 1 to getNumEntries/Cluster.getClusterSize) {
+      for (i <- 1 to NumEntries/Cluster.getClusterSize) {
          ispnIter.next()
          count += 1
       }
@@ -43,25 +47,25 @@ class RDDFailOverSuite extends FunSuite with Matchers with WordCache with Spark 
          count += 1
       }
 
-      count shouldBe getNumEntries
+      count shouldBe NumEntries
    }
 
    test("RDD write failover") {
       val cache = getRemoteCache.asInstanceOf[RemoteCache[Int, Runner]]
       cache.clear()
 
-      val range1 = 0 to 999
-      val entities1 = (for (num <- range1) yield new Runner(s"name$num", true, num * 10, 20)).toSeq
+      val range1 = 1 to NumEntries
+      val entities1 = for (num <- range1) yield new Runner(s"name$num", true, num * 10, 20)
       val rdd = sc.parallelize(range1.zip(entities1))
 
       val writeRDD = Future(rdd.writeToInfinispan(getConfiguration))
       waitForCondition ({ () =>
          cache.size() > 0 //make sure we are already writing into the cache
-      }, 1000, 1)
+      }, 2 seconds)
       Cluster.failServer(0)
       Await.ready(writeRDD, 30 second)
 
-      cache.size() shouldBe 1000
+      cache.size() shouldBe NumEntries
       cache.get(350).getName shouldBe "name350"
    }
 }

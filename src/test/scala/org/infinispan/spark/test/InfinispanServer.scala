@@ -200,21 +200,22 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 
    def startAndWaitForCluster(size: Int, duration: Duration) = {
       start()
+      waitForCacheManager("clustered")
       waitForNumberOfMembers(size, duration)
    }
 
-   def startAndWaitForLocalCacheManager() = {
+   def startAndWaitForCacheManager(name: String) = {
       start()
-      waitForLocalCacheManager()
+      waitForCacheManager(name)
    }
 
    def shutDown(): Unit = {
-      launcher.destroy()
       val res = client ! ModelNode(OP -> ShutDownOp)
       if (res.isFailure) {
          throw new Exception(s"Failure to stop server $name")
       }
       client.close()
+      launcher.exitValue()
       started = false
    }
 
@@ -251,8 +252,8 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    def waitForNumberOfMembers(members: Int, duration: Duration = DefaultDuration): Unit =
       waitForServerOperationResult[Int](ModelNode() at ("subsystem" -> InfinispanSubsystem)/ ("cache-container" -> "clustered") op 'read_attribute('name -> "cluster-size"), _ == members, duration)
 
-   def waitForLocalCacheManager(): Unit =
-      waitForServerOperationResult[String](ModelNode() at ("subsystem" -> InfinispanSubsystem)/ ("cache-container" -> "local") op 'read_attribute('name -> "cache-manager-status"), _ == "RUNNING")
+   def waitForCacheManager(name: String): Unit =
+      waitForServerOperationResult[String](ModelNode() at ("subsystem" -> InfinispanSubsystem)/ ("cache-container" -> name) op 'read_attribute('name -> "cache-manager-status"), _ == "RUNNING")
 
    def addLocalCache(cacheName: String, config: Option[ModelNode]) = {
       addCache("local", cacheName, CacheType.LOCAL, config)
@@ -374,7 +375,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 object SingleNode {
    private val server: InfinispanServer = new InfinispanServer("/infinispan-server/", "standalone")
 
-   def start() = if (!server.isStarted) server.startAndWaitForLocalCacheManager()
+   def start() = if (!server.isStarted) server.startAndWaitForCacheManager("local")
 
    def shutDown() = server.shutDown()
 
