@@ -5,10 +5,10 @@ import java.lang.management.ManagementFactory
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.nio.file.{Files, Paths}
 
+import org.infinispan.client.hotrod.RemoteCacheManager
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
-import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
 import org.infinispan.filter.{KeyValueFilterConverterFactory, NamedFactory}
-import org.infinispan.spark.test.TestingUtil.waitForCondition
+import org.infinispan.spark.test.TestingUtil.{DefaultDuration, waitForCondition}
 import org.jboss.as.controller.client.helpers.ClientConstants._
 import org.jboss.dmr.repl.{Client, Response}
 import org.jboss.dmr.scala.{ModelNode, _}
@@ -17,7 +17,6 @@ import org.jboss.shrinkwrap.api.asset.StringAsset
 import org.jboss.shrinkwrap.api.exporter.ZipExporter
 import org.jboss.shrinkwrap.api.spec.JavaArchive
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -55,11 +54,11 @@ private[test] class Cluster(size: Int, location: String) {
    def isStarted = started
 
    def startAndWait(duration: Duration) = {
-      val servers = for (i <- 0 to size - 1) yield {
+      val servers = for (i <- 0 until size) yield {
          new InfinispanServer(location, s"server$i", clustered = true, i * 1000)
       }
       _servers ++= servers
-      val futureServers = _servers.map(s => Future(s.startAndWaitForCluster(_servers.size)))
+      val futureServers = _servers.map(s => Future(s.startAndWaitForCluster(_servers.size, duration)))
       val outcome = Future.sequence(futureServers)
       Await.ready(outcome, duration)
       outcome.value match {
@@ -177,9 +176,9 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 
    def isStarted = started
 
-   def startAndWaitForCluster(size: Int) = {
+   def startAndWaitForCluster(size: Int, duration: Duration) = {
       start()
-      waitForNumberOfMembers(size)
+      waitForNumberOfMembers(size, duration)
    }
 
    def startAndWaitForLocalCacheManager() = {
@@ -227,8 +226,8 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 
    private def getManagementPort = if (portOffSet == 0) ManagementPort else ManagementPort + portOffSet
 
-   def waitForNumberOfMembers(members: Int): Unit =
-      waitForServerOperationResult[Int](ModelNode() at ("subsystem" -> InfinispanSubsystem)/ ("cache-container" -> "clustered") op 'read_attribute('name -> "cluster-size"), _ == members)
+   def waitForNumberOfMembers(members: Int, duration: Duration = DefaultDuration): Unit =
+      waitForServerOperationResult[Int](ModelNode() at ("subsystem" -> InfinispanSubsystem)/ ("cache-container" -> "clustered") op 'read_attribute('name -> "cluster-size"), _ == members, duration)
 
    def waitForLocalCacheManager(): Unit =
       waitForServerOperationResult[String](ModelNode() at ("subsystem" -> InfinispanSubsystem)/ ("cache-container" -> "local") op 'read_attribute('name -> "cache-manager-status"), _ == "RUNNING")
@@ -342,11 +341,11 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       }
    }
 
-   private def waitForServerOperationResult[T](operation: ModelNode, condition: T => Boolean)(implicit ev: ModelNodeResult[T]): Unit = {
-      waitForCondition { () =>
+   private def waitForServerOperationResult[T](operation: ModelNode, condition: T => Boolean, duration: Duration = DefaultDuration)(implicit ev: ModelNodeResult[T]): Unit = {
+      waitForCondition(() => {
          val result = executeOperation[T](operation)(ev)
          result.exists(condition)
-      }
+      }, duration)
    }
 }
 
@@ -370,7 +369,7 @@ object SingleNode {
 object Cluster {
    val NumberOfServers = 3
    val ServerPath = "/infinispan-server/"
-   val StartTimeout = 60 seconds
+   val StartTimeout = 200 seconds
 
    private val cluster: Cluster = new Cluster(NumberOfServers, ServerPath)
 

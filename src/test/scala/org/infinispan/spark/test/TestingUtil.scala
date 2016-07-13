@@ -3,11 +3,17 @@ package org.infinispan.spark.test
 import java.util.function.BooleanSupplier
 
 import scala.annotation.tailrec
+import scala.concurrent.duration.{Duration, _}
+import scala.language.{implicitConversions, postfixOps}
 import scala.util.{Failure, Success, Try}
 
 object TestingUtil {
 
-   def waitForCondition(command: () => Boolean, numTimes: Int = 60, waitBetweenRetries: Int = 1000): Unit = {
+   val NumTimes = 10
+   val DefaultDuration = 60 seconds
+
+   def waitForCondition(command: () => Boolean, duration: Duration): Unit = {
+      val waitBetweenRetries = duration.toMillis / NumTimes
       @tailrec
       def waitForCondition(numTimes: Int, sleep: Boolean): Unit = {
          if (sleep) Thread.sleep(waitBetweenRetries)
@@ -18,10 +24,12 @@ object TestingUtil {
             case _ => waitForCondition(numTimes - 1, sleep = true)
          }
       }
-      waitForCondition(numTimes, sleep = false)
+      waitForCondition(NumTimes, sleep = false)
    }
 
-   def waitForCondition(command: BooleanSupplier): Unit = waitForCondition(toScala(command))
+   def waitForCondition(command: () => Boolean): Unit = waitForCondition(command, DefaultDuration)
+
+   def waitForCondition(command: BooleanSupplier): Unit = waitForCondition(toScala(command), DefaultDuration)
 
    private def toScala(f: BooleanSupplier) = new (() => Boolean) {
       override def apply() = f.getAsBoolean
