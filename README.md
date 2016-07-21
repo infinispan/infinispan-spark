@@ -1,6 +1,6 @@
 ### Infinispan Spark connector
 
-[![Build Status](https://travis-ci.org/infinispan/infinispan-spark.svg)](https://travis-ci.org/infinispan/infinispan-spark)
+[![Build Status](https://travis-ci.org/infinispan/infinispan-spark.svg?branch=master)](https://travis-ci.org/infinispan/infinispan-spark)
 
 #### Supported:
 
