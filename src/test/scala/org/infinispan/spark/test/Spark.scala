@@ -12,17 +12,16 @@ import org.scalatest.{BeforeAndAfterAll, Suite}
 trait Spark extends BeforeAndAfterAll {
    this: Suite with RemoteTest =>
 
-   private lazy val config: SparkConf = createSparkConfig
-   protected var sc: SparkContext = _
+   protected def getSparkConfig = new SparkConf().setMaster("local[8]").setAppName(this.getClass.getName).set("spark.driver.host","127.0.0.1")
 
-   def createSparkConfig = new SparkConf().setMaster("local[8]").setAppName(this.getClass.getName).set("spark.driver.host","127.0.0.1")
+   protected var sc: SparkContext = _
 
    def createInfinispanRDD[K, V] = {
       new InfinispanRDD[K, V](sc, configuration = getConfiguration)
    }
 
    override protected def beforeAll(): Unit = {
-      sc = new SparkContext(config)
+      sc = new SparkContext(getSparkConfig)
       super.beforeAll()
    }
 

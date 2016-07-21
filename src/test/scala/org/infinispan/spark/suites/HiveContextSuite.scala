@@ -1,7 +1,7 @@
 package org.infinispan.spark.suites
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.hive.HiveContext
+import org.apache.spark.sql.SparkSession
 import org.infinispan.spark.domain.Runner
 import org.infinispan.spark.test.{RunnersCache, SingleServer, Spark}
 import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
@@ -11,8 +11,8 @@ class HiveContextSuite extends FunSuite with RunnersCache with Spark with Single
    override protected def getNumEntries: Int = 200
 
    test("Hive SQL") {
-      withHiveContext { (hiveContext: HiveContext, runnersRDD) =>
-         val sample = hiveContext.sql(
+      withHiveContext { (session: SparkSession, runnersRDD) =>
+         val sample = session.sql(
             """
              SELECT * FROM runners TABLESAMPLE(10 ROWS) s
             """.stripMargin).collect()
@@ -21,12 +21,12 @@ class HiveContextSuite extends FunSuite with RunnersCache with Spark with Single
       }
    }
 
-   private def withHiveContext(f: (HiveContext, RDD[Runner]) => Any) = {
+   private def withHiveContext(f: (SparkSession, RDD[Runner]) => Any) = {
       val runnersRDD = createInfinispanRDD[Integer, Runner].values
-      val hiveContext = new HiveContext(sc)
-      val dataFrame = hiveContext.createDataFrame(runnersRDD, classOf[Runner])
-      dataFrame.registerTempTable("runners")
-      f(hiveContext, runnersRDD)
+      val sparkSession = SparkSession.builder().enableHiveSupport().config(getSparkConfig)getOrCreate()
+      val dataFrame = sparkSession.createDataFrame(runnersRDD, classOf[Runner])
+      dataFrame.createOrReplaceTempView("runners")
+      f(sparkSession, runnersRDD)
    }
 
 }

@@ -72,4 +72,4 @@ SPARK_MASTER="$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $SPAR
 INFINISPAN_MASTER="$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $INFINISPAN_NAME)"
 
 echo "Submitting the job"
-docker exec -it $SPARK_MASTER_NAME /usr/local/spark/bin/spark-submit --driver-java-options "-Dtwitter4j.oauth.consumerKey=$c -Dtwitter4j.oauth.consumerSecret=$k -Dtwitter4j.oauth.accessToken=$t -Dtwitter4j.oauth.accessTokenSecret=$s" --master spark://$SPARK_MASTER:7077 --class $CLASSNAME /usr/local/code/scala-$SCALA_VERSION/infinispan-spark-twitter.jar ${INFINISPAN_MASTER} ${DURATION}
+docker exec -it $SPARK_MASTER_NAME /usr/local/spark/bin/spark-submit --driver-java-options "-Dtwitter.oauth.consumerKey=$c -Dtwitter.oauth.consumerSecret=$k -Dtwitter.oauth.accessToken=$t -Dtwitter.oauth.accessTokenSecret=$s" --master spark://$SPARK_MASTER:7077 --class $CLASSNAME /usr/local/code/scala-$SCALA_VERSION/infinispan-spark-twitter.jar ${INFINISPAN_MASTER} ${DURATION}

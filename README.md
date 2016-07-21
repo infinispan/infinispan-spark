@@ -20,31 +20,33 @@
 | -------- | ---------- | ----- | ----- | ---- |
 | 0.1  | 8.0.x  | 1.4.x | 2.10.x / 2.11.x | 8  |
 | 0.2  | 8.1.x  | 1.5.x | 2.10.x / 2.11.x | 8  |
-| 0.3  | 8.2.x  | 1.6.x | 2.10.x / 2.11.x | 8  |
+| 0.3  | 8.2.x 9.x | 1.6.x | 2.10.x / 2.11.x | 8  |
+| 0.4  | 8.2.x 9.x | 2.0.0 | 2.10.x / 2.11.x | 8  |
+
 
 #### Dependency:
 
 Sbt:  
 
-```"org.infinispan" %% "infinispan-spark" % "0.3"```
+```"org.infinispan" %% "infinispan-spark" % "0.4"```
 
 Maven:
+
+Scala 2.11  
+```
+<dependency>
+    <groupId>org.infinispan</groupId>
+    <artifactId>infinispan-spark_2.11</artifactId>
+    <version>0.4</version>
+</dependency>
+```
 
 Scala 2.10  
 ```
 <dependency>
     <groupId>org.infinispan</groupId>
     <artifactId>infinispan-spark_2.10</artifactId>
-    <version>0.3</version>
-</dependency>
-```
-
-Scala 2.11      
-```
-<dependency>
-    <groupId>org.infinispan</groupId>
-    <artifactId>infinispan-spark_2.11</artifactId>
-    <version>0.3</version>
+    <version>0.4</version>
 </dependency>
 ```
 

@@ -3,7 +3,7 @@ package org.infinispan.spark;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.infinispan.client.hotrod.RemoteCache;
@@ -77,8 +77,8 @@ public class JavaApiTest {
    public void testSQL() throws Exception {
       SQLContext sqlContext = new SQLContext(jsc);
       JavaRDD<Address> addressRDD = infinispanRDD.values().map(Person::getAddress);
-      DataFrame dataFrame = sqlContext.createDataFrame(addressRDD, Address.class);
-      dataFrame.registerTempTable("addresses");
+      Dataset<Row> dataset = sqlContext.createDataFrame(addressRDD, Address.class);
+      dataset.createOrReplaceTempView("addresses");
 
       List<Row> rows = sqlContext.sql("SELECT a.country from addresses a GROUP BY a.country").collectAsList();
 

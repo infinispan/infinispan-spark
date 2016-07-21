@@ -1,6 +1,6 @@
 package org.infinispan.spark.serializer
 
-import java.io.{InputStream, ObjectInput, ObjectOutput, OutputStream}
+import java.io._
 import java.nio.ByteBuffer
 
 import org.apache.spark.serializer.{DeserializationStream, SerializationStream, Serializer, SerializerInstance}
@@ -13,9 +13,13 @@ import scala.reflect.ClassTag
  *
  * @author gustavonalle
  */
-class JBossMarshallingSerializer extends Serializer {
+class JBossMarshallingSerializer extends Serializer with Externalizable {
 
    private val BufferSize = 512
+
+   override def readExternal(in: ObjectInput) = new JBossMarshallingSerializer
+
+   override def writeExternal(out: ObjectOutput) = {}
 
    override def newInstance(): SerializerInstance = new SerializerInstance {
 
@@ -45,7 +49,10 @@ class JBossMarshallingSerializer extends Serializer {
 
       override def flush(): Unit = marshaller.finishObjectOutput(objectOutput)
 
-      override def close(): Unit = objectOutput.close()
+      override def close(): Unit = {
+         objectOutput.close()
+         out.close()
+      }
    }
 
    private[serializer] class GenericMarshallerDeSerializationStream(val in: InputStream, val marshaller: GenericJBossMarshaller) extends DeserializationStream {

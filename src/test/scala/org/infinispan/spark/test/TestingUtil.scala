@@ -4,7 +4,7 @@ import java.util.function.BooleanSupplier
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.{Duration, _}
-import scala.language.{implicitConversions, postfixOps}
+import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 
 object TestingUtil {

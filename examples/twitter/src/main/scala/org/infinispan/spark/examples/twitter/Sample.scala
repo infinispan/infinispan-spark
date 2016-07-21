@@ -4,7 +4,9 @@ import org.apache.spark.SparkConf
 import org.apache.spark.streaming.StreamingContext
 
 object Sample {
-   def getSparkConf(appName: String): SparkConf = new SparkConf().setAppName(appName).set("spark.io.compression.codec", "lz4")
+   def getSparkConf(appName: String): SparkConf = new SparkConf().setAppName(appName)
+           .set("spark.io.compression.codec", "lz4")
+           .set("spark.sql.warehouse.dir", "/usr/local/code")
 
    def runAndExit(context: StreamingContext, durationSeconds: Long): Unit = {
       context.start()

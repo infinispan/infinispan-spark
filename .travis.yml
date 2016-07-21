@@ -5,11 +5,13 @@ cache:
     - $HOME/.sbt
     - $HOME/.ivy2
 scala:
-   - 2.10.5
-   - 2.11.7
+   - 2.10.6
+   - 2.11.8
 jdk:
   - oraclejdk8
 
 after_failure:
   - cat /home/travis/build/infinispan/infinispan-spark/target/scala-*/test-classes/infinispan-server/logs/server*/*.log
 
+script:
+  - sbt ++$TRAVIS_SCALA_VERSION clean test

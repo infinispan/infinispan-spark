@@ -1,11 +1,14 @@
 package org.infinispan.spark.examples.twitter;
 
+import static java.util.Arrays.stream;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import static org.infinispan.spark.examples.twitter.Sample.usage;
+import org.apache.spark.api.java.function.PairFunction;
 import org.infinispan.spark.rdd.InfinispanJavaRDD;
 import scala.Tuple2;
 
@@ -20,9 +23,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.toList;
 
 /**
  * This demo will do
@@ -67,7 +67,7 @@ public class WordCountJava {
 
       // Run the word count and extract the top 20 most frequent words
       List<Tuple2<String, Integer>> results = infinispanRDD.values().map(Tweet::getText)
-              .flatMap(s -> stream(s.split(" ")).collect(toList()))
+              .flatMap(s -> stream(s.split(" ")).iterator())
               .map(s -> s.replaceAll("[^a-zA-Z ]", ""))
               .filter(s -> !stopWords.contains(s.toLowerCase()) && !s.isEmpty())
               .mapToPair(word -> new Tuple2<>(word, 1))

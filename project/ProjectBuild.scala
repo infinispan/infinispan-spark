@@ -44,7 +44,7 @@ object ProjectBuild extends Build {
          .dependsOn(core)
          .settings(commonSettings: _ *)
          .settings(
-            libraryDependencies ++= Seq(twitter4jCore, sparkStreamingTwitter),
+            libraryDependencies ++= Seq(twitterHbc, playJson),
             assemblyJarName in assembly := "infinispan-spark-twitter.jar",
             assemblyMergeStrategy in assembly := {
                case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
@@ -60,8 +60,8 @@ object ProjectBuild extends Build {
    lazy val examplesRef = LocalProject("examples")
 
    def commonSettings = Seq(
-      scalaVersion := "2.11.7",
-      crossScalaVersions := Seq("2.10.5", "2.11.7"),
+      scalaVersion := "2.11.8",
+      crossScalaVersions := Seq("2.10.6", "2.11.8"),
       libraryDependencies ++= Seq(sparkCore, sparkStreaming, sparkSQL),
 
       scalacOptions <++= scalaVersion map { v =>
