@@ -1,8 +1,8 @@
 infinispan1: 
-  image: gustavonalle/infinispan-server:$INFINISPAN_VERSION
+  image: jboss/infinispan-server:$INFINISPAN_VERSION
   container_name: ispn-1
 infinispan2:
-  image: gustavonalle/infinispan-server:$INFINISPAN_VERSION
+  image: jboss/infinispan-server:$INFINISPAN_VERSION
   container_name: ispn-2
 sparkMaster:
   image: gustavonalle/spark:$SPARK_VERSION
