@@ -12,6 +12,7 @@ import org.apache.spark.streaming.api.java.JavaReceiverInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.twitter.TwitterUtils;
 import org.infinispan.client.hotrod.event.ClientEvent;
+import static org.infinispan.spark.examples.twitter.Sample.runAndExit;
 import org.infinispan.spark.stream.InfinispanJavaDStream;
 import scala.Tuple2;
 import scala.Tuple3;
@@ -43,6 +44,10 @@ public class StreamProducerJava {
       System.setProperty("twitter4j.oauth.consumerSecret", args[2]);
       System.setProperty("twitter4j.oauth.accessToken", args[3]);
       System.setProperty("twitter4j.oauth.accessTokenSecret", args[4]);
+      Long duration = -1L;
+      if(args.length > 5) {
+         duration = Long.parseLong(args[5]) * 1000;
+      }
 
       // Reduce the log level in the driver
       Logger.getLogger("org").setLevel(Level.WARN);
@@ -90,9 +95,7 @@ public class StreamProducerJava {
       });
 
       // Start the processing
-      javaStreamingContext.start();
-
-      javaStreamingContext.awaitTermination();
+      runAndExit(javaStreamingContext.ssc(), duration);
    }
 
 }

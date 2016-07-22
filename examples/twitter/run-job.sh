@@ -17,4 +17,4 @@ SPARK_MASTER="$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $SPAR
 INFINISPAN_MASTER="$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $INFINISPAN_NAME)"
 
 echo "Submitting the job"
-docker exec -it $SPARK_MASTER_NAME /usr/local/spark/bin/spark-submit --master spark://$SPARK_MASTER:7077 --class $1 /usr/local/code/scala-2.10/infinispan-spark-twitter.jar ${INFINISPAN_MASTER} $2 $3 $4 $5
+docker exec -it $SPARK_MASTER_NAME /usr/local/spark/bin/spark-submit --master spark://$SPARK_MASTER:7077 --class $1 /usr/local/code/scala-2.10/infinispan-spark-twitter.jar ${INFINISPAN_MASTER} $2 $3 $4 $5 $6

@@ -3,16 +3,16 @@ package org.infinispan.spark.examples.twitter
 import java.util.Properties
 
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.SparkContext
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.twitter.TwitterUtils
 import org.apache.spark.streaming.{Seconds, StreamingContext}
-import org.apache.spark.{SparkConf, SparkContext}
-import org.infinispan.spark.examples.twitter.Sample.getSparkConf
+import org.infinispan.spark.examples.twitter.Sample.{getSparkConf, runAndExit}
 import org.infinispan.spark.stream._
 
 /**
- * @author gustavonalle
- */
+  * @author gustavonalle
+  */
 object StreamProducerScala {
    def main(args: Array[String]) {
       if (args.length < 5) {
@@ -26,6 +26,7 @@ object StreamProducerScala {
       System.setProperty("twitter4j.oauth.consumerSecret", args(2))
       System.setProperty("twitter4j.oauth.accessToken", args(3))
       System.setProperty("twitter4j.oauth.accessTokenSecret", args(4))
+      val durationOptional: Long = if(args.length > 5) args(5).toLong * 1000 else -1
 
       val conf = getSparkConf("spark-infinispan-stream-producer-scala")
       val sparkContext = new SparkContext(conf)
@@ -51,7 +52,7 @@ object StreamProducerScala {
 
       lastMinuteDStream.foreachRDD { (rdd, time) => println(s"--------- $time -------"); rdd.sortBy(_._2, ascending = false).collect().foreach(println) }
 
-      streamingContext.start()
-      streamingContext.awaitTermination()
+      runAndExit(streamingContext, durationOptional)
+
    }
 }

@@ -4,12 +4,12 @@ import java.util.Properties
 import java.util.concurrent.{Executors, TimeUnit}
 
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.SparkContext
 import org.apache.spark.streaming.twitter.TwitterUtils
 import org.apache.spark.streaming.{Seconds, StreamingContext}
-import org.apache.spark.{SparkConf, SparkContext}
 import org.infinispan.client.hotrod.RemoteCacheManager
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
-import org.infinispan.spark.examples.twitter.Sample.getSparkConf
+import org.infinispan.spark.examples.twitter.Sample.{getSparkConf, runAndExit}
 import org.infinispan.spark.stream._
 
 import scala.collection.JavaConversions._
@@ -17,14 +17,14 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 /**
- * @see StreamConsumerJava
- * @author gustavonalle
- */
+  * @see StreamConsumerJava
+  * @author gustavonalle
+  */
 object StreamConsumerScala {
 
    def main(args: Array[String]) {
       if (args.length < 5) {
-         System.out.println("Usage: StreamConsumerScala <infinispan_host> <twitter4j.oauth.consumerKey> <twitter4j.oauth.consumerSecret> <twitter4j.oauth.accessToken> <twitter4j.oauth.accessTokenSecret>")
+         System.out.println("Usage: StreamConsumerScala <infinispan_host> <twitter4j.oauth.consumerKey> <twitter4j.oauth.consumerSecret> <twitter4j.oauth.accessToken> <twitter4j.oauth.accessTokenSecret> <timeout (s)>")
          System.exit(1)
       }
 
@@ -34,6 +34,7 @@ object StreamConsumerScala {
       System.setProperty("twitter4j.oauth.consumerSecret", args(2))
       System.setProperty("twitter4j.oauth.accessToken", args(3))
       System.setProperty("twitter4j.oauth.accessTokenSecret", args(4))
+      val durationOptional: Long = if (args.length > 5) args(5).toLong * 1000 else -1
 
       val conf = getSparkConf("spark-infinispan-stream-consumer-scala")
       val sparkContext = new SparkContext(conf)
@@ -61,8 +62,7 @@ object StreamConsumerScala {
          println()
       })
 
-      streamingContext.start()
-      streamingContext.awaitTermination()
+      runAndExit(streamingContext, durationOptional)
    }
 
    object Repeat {
