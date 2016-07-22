@@ -37,7 +37,7 @@ To run the job:
 
 ```./run-job.sh org.infinispan.spark.examples.twitter.StreamConsumerJava <twitter.consumerKey> <twitter.consumerSecret> <twitter.accessToken> <twitter.accessTokenSecret>```
 
-or use ```org.infinispan.spark.examples.twitter.TwitterStreamConsumerScala``` to run the Scala version
+or use ```org.infinispan.spark.examples.twitter.StreamConsumerScala``` to run the Scala version
 
 After a few seconds, the number of tweets inserted in the cache plus the last tweet stored will be printed.
 
