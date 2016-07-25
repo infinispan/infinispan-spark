@@ -9,7 +9,7 @@ import org.apache.spark.streaming.twitter.TwitterUtils
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.infinispan.client.hotrod.RemoteCacheManager
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
-import org.infinispan.spark.examples.twitter.Sample.{getSparkConf, runAndExit}
+import org.infinispan.spark.examples.twitter.Sample.{getSparkConf, runAndExit, usageStream}
 import org.infinispan.spark.stream._
 
 import scala.collection.JavaConversions._
@@ -23,18 +23,14 @@ import scala.language.postfixOps
 object StreamConsumerScala {
 
    def main(args: Array[String]) {
-      if (args.length < 5) {
-         System.out.println("Usage: StreamConsumerScala <infinispan_host> <twitter4j.oauth.consumerKey> <twitter4j.oauth.consumerSecret> <twitter4j.oauth.accessToken> <twitter4j.oauth.accessTokenSecret> <timeout (s)>")
-         System.exit(1)
+      Logger.getLogger("org").setLevel(Level.WARN)
+
+      if (args.length < 2) {
+         usageStream("StreamConsumerScala")
       }
 
-      Logger.getLogger("org").setLevel(Level.WARN)
       val infinispanHost = args(0)
-      System.setProperty("twitter4j.oauth.consumerKey", args(1))
-      System.setProperty("twitter4j.oauth.consumerSecret", args(2))
-      System.setProperty("twitter4j.oauth.accessToken", args(3))
-      System.setProperty("twitter4j.oauth.accessTokenSecret", args(4))
-      val durationOptional: Long = if (args.length > 5) args(5).toLong * 1000 else -1
+      val duration = args(1).toLong * 1000
 
       val conf = getSparkConf("spark-infinispan-stream-consumer-scala")
       val sparkContext = new SparkContext(conf)
@@ -62,7 +58,7 @@ object StreamConsumerScala {
          println()
       })
 
-      runAndExit(streamingContext, durationOptional)
+      runAndExit(streamingContext, duration)
    }
 
    object Repeat {

@@ -5,7 +5,7 @@ import java.util.Properties
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
-import org.infinispan.spark.examples.twitter.Sample.getSparkConf
+import org.infinispan.spark.examples.twitter.Sample.{getSparkConf, usage}
 import org.infinispan.spark.rdd.InfinispanRDD
 
 /**
@@ -17,8 +17,7 @@ object SQLAggregationScala {
 
    def main(args: Array[String]) {
       if (args.length < 1) {
-         System.out.println("Usage: SQLAggregationScala <infinispan_host>")
-         System.exit(1)
+         usage("SQLAggregationScala")
       }
 
       Logger.getLogger("org").setLevel(Level.WARN)

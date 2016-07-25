@@ -31,11 +31,11 @@ following instructions on https://dev.twitter.com/oauth/overview/application-own
 
 ### 1. Populate the cache
 
-The first job ```TwitterStreamConsumer``` will create a Twitter DStream, apply a transformation and save them to Infinispan.
+The first job ```StreamConsumer``` will create a Twitter DStream, apply a transformation and save them to Infinispan.
 
 To run the job:
 
-```./run-job.sh org.infinispan.spark.examples.twitter.StreamConsumerJava <twitter.consumerKey> <twitter.consumerSecret> <twitter.accessToken> <twitter.accessTokenSecret>```
+```./run-job.sh -m org.infinispan.spark.examples.twitter.StreamConsumerJava -c <twitter.consumerKey> -k <twitter.consumerSecret> -t <twitter.accessToken> -s <twitter.accessTokenSecret>```
 
 or use ```org.infinispan.spark.examples.twitter.StreamConsumerScala``` to run the Scala version
 
@@ -61,7 +61,7 @@ and will print the top 20 words found. Output will be:
 
 To run the job:
 
-```./run-job.sh org.infinispan.spark.examples.twitter.WordCountJava```
+```./run-job.sh -m org.infinispan.spark.examples.twitter.WordCountJava```
 
 or use ```org.infinispan.spark.examples.twitter.WordCountScala``` for the Scala version.
 
@@ -73,7 +73,7 @@ The ```SQLAggregation``` job uses SQL to group the tweets by country and print t
 
 Java:
 
-```./run-job.sh org.infinispan.spark.examples.twitter.SQLAggregationJava```
+```./run-job.sh -m org.infinispan.spark.examples.twitter.SQLAggregationJava```
 
 or use ```org.infinispan.spark.examples.twitter.SQLAggregationScala``` for the Scala version.
 
@@ -96,7 +96,7 @@ in the cache. It prints the summary by country of the tweets inserted in the cac
 
 Java:
 
-```./run-job.sh org.infinispan.spark.examples.twitter.StreamProducerJava <twitter.consumerKey> <twitter.consumerSecret> <twitter.accessToken> <twitter.accessTokenSecret>```
+```./run-job.sh -m org.infinispan.spark.examples.twitter.StreamProducerJava -c <twitter.consumerKey> -k <twitter.consumerSecret> -t <twitter.accessToken> -s <twitter.accessTokenSecret>```
 
 or use ```org.infinispan.spark.examples.twitter.StreamProducerScala``` for the Scala version.
 

@@ -9,6 +9,7 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
+import static org.infinispan.spark.examples.twitter.Sample.usage;
 import org.infinispan.spark.rdd.InfinispanJavaRDD;
 
 import java.io.IOException;
@@ -25,8 +26,7 @@ public class SQLAggregationJava {
 
    public static void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
       if (args.length < 1) {
-         System.out.println("Usage: SQLAggregationJava <infinispan_host>");
-         System.exit(1);
+         usage(SQLAggregationJava.class.getSimpleName());
       }
       String infinispanHost = args[0];
 

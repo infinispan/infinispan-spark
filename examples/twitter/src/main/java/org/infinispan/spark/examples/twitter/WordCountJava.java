@@ -5,6 +5,7 @@ import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import static org.infinispan.spark.examples.twitter.Sample.usage;
 import org.infinispan.spark.rdd.InfinispanJavaRDD;
 import scala.Tuple2;
 
@@ -37,8 +38,7 @@ public class WordCountJava {
 
    public static void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
       if (args.length < 1) {
-         System.out.println("Usage: WordCountJava <infinispan_host>");
-         System.exit(1);
+         usage(WordCountJava.class.getSimpleName());
       }
       String infinispanHost = args[0];
 

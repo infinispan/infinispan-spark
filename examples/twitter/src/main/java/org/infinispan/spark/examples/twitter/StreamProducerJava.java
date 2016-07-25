@@ -3,6 +3,7 @@ package org.infinispan.spark.examples.twitter;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
+import static org.apache.spark.storage.StorageLevel.MEMORY_ONLY;
 import org.apache.spark.streaming.Duration;
 import org.apache.spark.streaming.Seconds;
 import org.apache.spark.streaming.api.java.JavaDStream;
@@ -13,6 +14,7 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.twitter.TwitterUtils;
 import org.infinispan.client.hotrod.event.ClientEvent;
 import static org.infinispan.spark.examples.twitter.Sample.runAndExit;
+import static org.infinispan.spark.examples.twitter.Sample.usage;
 import org.infinispan.spark.stream.InfinispanJavaDStream;
 import scala.Tuple2;
 import scala.Tuple3;
@@ -23,8 +25,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 
-import static org.apache.spark.storage.StorageLevel.MEMORY_ONLY;
-
 /**
  * This demo will start a DStream from Twitter and will save it to Infinispan after applying a transformation. At the
  * same time, it will listen to {@link Tweet} insertions and print a summary by country in the last 60 seconds.
@@ -34,20 +34,12 @@ import static org.apache.spark.storage.StorageLevel.MEMORY_ONLY;
 public class StreamProducerJava {
 
    public static void main(String[] args) {
-      if (args.length < 5) {
-         System.out.println("Usage: StreamProducerJava <infinispan_host> <twitter4j.oauth.consumerKey> <twitter4j.oauth.consumerSecret> <twitter4j.oauth.accessToken> <twitter4j.oauth.accessTokenSecret>");
-         System.exit(1);
+      if (args.length < 2) {
+         usage(StreamProducerJava.class.getSimpleName());
       }
 
       String infinispanHost = args[0];
-      System.setProperty("twitter4j.oauth.consumerKey", args[1]);
-      System.setProperty("twitter4j.oauth.consumerSecret", args[2]);
-      System.setProperty("twitter4j.oauth.accessToken", args[3]);
-      System.setProperty("twitter4j.oauth.accessTokenSecret", args[4]);
-      Long duration = -1L;
-      if(args.length > 5) {
-         duration = Long.parseLong(args[5]) * 1000;
-      }
+      Long duration = Long.parseLong(args[1]) * 1000;
 
       // Reduce the log level in the driver
       Logger.getLogger("org").setLevel(Level.WARN);
