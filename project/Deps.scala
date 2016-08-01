@@ -24,6 +24,6 @@ object Deps {
    val sl4jbridge = "org.slf4j" % "slf4j-log4j12" % sl4jVersion % "test"
 
    // Demo deps
-   val twitter4jCore = "org.twitter4j" % "twitter4j-core" % twitter4jVersion
-   val sparkStreamingTwitter = "org.apache.spark" %% "spark-streaming-twitter" % sparkVersion
+   val twitterHbc = "com.twitter" % "hbc-core" % twitterHbcVersion
+   val playJson = "com.typesafe.play" % "play-json_2.11" % playJsonVersion
 }

@@ -5,7 +5,6 @@ import java.util.Properties
 
 import org.apache.spark.SparkConf
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
-import org.infinispan.client.hotrod.impl.query.RemoteQuery
 import org.infinispan.client.hotrod.marshall.ProtoStreamMarshaller
 import org.infinispan.client.hotrod.{RemoteCacheManager, Search}
 import org.infinispan.protostream.FileDescriptorSource
@@ -15,15 +14,13 @@ import org.infinispan.spark.rdd.InfinispanRDD
 import org.infinispan.spark.test._
 import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
 
-import scala.io.Source
-
 @DoNotDiscover
 class FilterByQueryProtoSuite extends FunSuite with Spark with MultipleServers with Matchers {
 
    override def getCacheType: CacheType.Value = CacheType.DISTRIBUTED
 
-   override def createSparkConfig: SparkConf = {
-      val config = super.createSparkConfig
+   override def getSparkConfig: SparkConf = {
+      val config = super.getSparkConfig
       config.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       config
    }
@@ -43,7 +40,7 @@ class FilterByQueryProtoSuite extends FunSuite with Spark with MultipleServers w
 
 
    val protoFile =
-         """
+      """
       package org.infinispan.spark.domain;
 
       message Person {
@@ -58,7 +55,7 @@ class FilterByQueryProtoSuite extends FunSuite with Spark with MultipleServers w
          required string country = 3;
       }
 
-         """.stripMargin
+      """.stripMargin
 
 
    val protoConfig = {
@@ -85,8 +82,8 @@ class FilterByQueryProtoSuite extends FunSuite with Spark with MultipleServers w
       val rdd = new InfinispanRDD[Int, Person](sc, configuration)
 
       val query = Search.getQueryFactory(defaultCache)
-            .from(classOf[Person]).having("address.number").gt(10)
-            .toBuilder.build()
+              .from(classOf[Person]).having("address.number").gt(10)
+              .toBuilder.build()
 
       val filteredRdd = rdd.filterByQuery[Person](query, classOf[Person])
 

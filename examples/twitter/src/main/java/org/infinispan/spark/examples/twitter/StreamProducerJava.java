@@ -6,23 +6,19 @@ import org.apache.spark.SparkConf;
 import static org.apache.spark.storage.StorageLevel.MEMORY_ONLY;
 import org.apache.spark.streaming.Duration;
 import org.apache.spark.streaming.Seconds;
-import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaInputDStream;
 import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaReceiverInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
-import org.apache.spark.streaming.twitter.TwitterUtils;
 import org.infinispan.client.hotrod.event.ClientEvent;
 import static org.infinispan.spark.examples.twitter.Sample.runAndExit;
 import static org.infinispan.spark.examples.twitter.Sample.usage;
+import org.infinispan.spark.examples.util.TwitterDStream;
 import org.infinispan.spark.stream.InfinispanJavaDStream;
 import scala.Tuple2;
 import scala.Tuple3;
-import twitter4j.Place;
-import twitter4j.Status;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Properties;
 
 /**
@@ -53,14 +49,10 @@ public class StreamProducerJava {
       Properties infinispanProperties = new Properties();
       infinispanProperties.put("infinispan.client.hotrod.server_list", infinispanHost);
 
-      JavaReceiverInputDStream<Status> twitterDStream = TwitterUtils.createStream(javaStreamingContext);
+      JavaReceiverInputDStream<Tweet> twitterDStream = TwitterDStream.create(javaStreamingContext);
 
-      // Transform from twitter4j.Status to our domain model org.infinispan.spark.demo.twitter.Tweet
-      JavaDStream<Tuple2<Long, Tweet>> kvPair = twitterDStream.map(status -> new Tuple2<>(status.getId(), new Tweet(status.getId(),
-              status.getUser().getScreenName(),
-              Optional.ofNullable(status.getPlace()).map(Place::getCountry).orElseGet(() -> "N/A"),
-              status.getRetweetCount(),
-              status.getText())));
+      // Transform from the stream of Tweets to a (K,V) pair
+      JavaPairDStream<Long, Tweet> kvPair = twitterDStream.mapToPair(tweet -> new Tuple2<>(tweet.getId(), tweet));
 
       // Write the stream to infinispan
       InfinispanJavaDStream.writeToInfinispan(kvPair, infinispanProperties);
@@ -83,7 +75,6 @@ public class StreamProducerJava {
          System.out.format("---------- %s ----------\n", time.toString());
          List<Tuple2<String, Integer>> results = rdd.collect();
          results.stream().sorted((o1, o2) -> o2._2().compareTo(o1._2())).forEach(t -> System.out.format("[%s,%d]\n", t._1(), t._2()));
-         return null;
       });
 
       // Start the processing

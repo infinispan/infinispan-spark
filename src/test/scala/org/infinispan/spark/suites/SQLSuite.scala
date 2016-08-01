@@ -1,7 +1,7 @@
 package org.infinispan.spark.suites
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.SparkSession
 import org.infinispan.spark.domain.Runner
 import org.infinispan.spark.test._
 import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
@@ -12,8 +12,8 @@ class SQLSuite extends FunSuite with RunnersCache with Spark with MultipleServer
    override def getNumEntries: Int = 100
 
    test("SQL Group By") {
-      withSqlContext { (sqlContext, runnersRDD) =>
-         val winners = sqlContext.sql(
+      withSession { (session, runnersRDD) =>
+         val winners = session.sql(
             """
               |SELECT MIN(r.finishTimeSeconds) as time, first(r.name) as name, first(r.age) as age
               |FROM runners r WHERE
@@ -32,18 +32,20 @@ class SQLSuite extends FunSuite with RunnersCache with Spark with MultipleServer
    }
 
    test("SQL Count") {
-      withSqlContext { (sqlContext, _) =>
-         val count = sqlContext.sql("SELECT count(*) AS result from runners").collect().head.getAs[Long]("result")
+      withSession { (session, _) =>
+         val count = session.sql("SELECT count(*) AS result from runners").collect().head.getAs[Long]("result")
          count shouldBe getNumEntries
       }
    }
 
-   private def withSqlContext(f: (SQLContext, RDD[Runner]) => Any) = {
+
+
+   private def withSession(f: (SparkSession, RDD[Runner]) => Any) = {
       val runnersRDD = createInfinispanRDD[Integer, Runner].values
-      val sqlContext = new SQLContext(sc)
-      val dataFrame = sqlContext.createDataFrame(runnersRDD, classOf[Runner])
-      dataFrame.registerTempTable("runners")
-      f(sqlContext, runnersRDD)
+      val session = SparkSession.builder().config(getSparkConfig).getOrCreate()
+      val dataFrame = session.createDataFrame(runnersRDD, classOf[Runner])
+      dataFrame.createOrReplaceTempView("runners")
+      f(session, runnersRDD)
    }
 
    override def getCacheType: CacheType.Value = CacheType.REPLICATED

@@ -6,7 +6,8 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.api.java.function.ForeachFunction;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import static org.infinispan.spark.examples.twitter.Sample.usage;
@@ -50,13 +51,13 @@ public class SQLAggregationJava {
 
       // Create a SQLContext, register a data frame and a temp table
       SQLContext sqlContext = new SQLContext(javaSparkContext);
-      DataFrame dataFrame = sqlContext.createDataFrame(tweetsRDD, Tweet.class);
+      Dataset dataFrame = sqlContext.createDataFrame(tweetsRDD, Tweet.class);
       dataFrame.registerTempTable("tweets");
 
       // Run the Query and collect results
-      Row[] rows = sqlContext.sql("SELECT country, count(*) as c from tweets WHERE country != 'N/A' GROUP BY country ORDER BY c desc").take(20);
+      Dataset<Row> rows = sqlContext.sql("SELECT country, count(*) as c from tweets WHERE country != 'N/A' GROUP BY country ORDER BY c desc");
 
-      Arrays.stream(rows).forEach(System.out::println);
+      rows.takeAsList(20).forEach(System.out::println);
    }
 
 }

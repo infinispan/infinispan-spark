@@ -22,7 +22,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
-import scala.language.{implicitConversions, postfixOps}
+import scala.language.postfixOps
 import scala.sys.process._
 import scala.util.{Failure, Success, Try}
 

@@ -1,6 +1,5 @@
 package org.infinispan.spark.test
 
-import org.infinispan.client.hotrod.RemoteCache
 import org.scalatest.{BeforeAndAfterAll, Suite}
 
 import scala.util.Random
