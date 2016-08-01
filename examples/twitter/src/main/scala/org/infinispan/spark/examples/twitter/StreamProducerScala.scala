@@ -5,9 +5,9 @@ import java.util.Properties
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkContext
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.streaming.twitter.TwitterUtils
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.infinispan.spark.examples.twitter.Sample.{getSparkConf, runAndExit, usageStream}
+import org.infinispan.spark.examples.util.TwitterDStream
 import org.infinispan.spark.stream._
 
 /**
@@ -32,11 +32,9 @@ object StreamProducerScala {
       val infinispanProperties = new Properties
       infinispanProperties.put("infinispan.client.hotrod.server_list", infinispanHost)
 
-      val twitterDStream = TwitterUtils.createStream(streamingContext, None)
+      val twitterDStream = TwitterDStream.create(streamingContext)
 
-      val keyValueTweetStream = twitterDStream.map {
-         s => (s.getId, new Tweet(s.getId, s.getUser.getScreenName, Option(s.getPlace).map(_.getCountry).getOrElse("N/A"), s.getRetweetCount, s.getText))
-      }
+      val keyValueTweetStream = twitterDStream.map(s => (s.getId, s))
 
       keyValueTweetStream.writeToInfinispan(infinispanProperties)
 

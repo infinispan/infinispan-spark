@@ -4,7 +4,7 @@ import java.util.Properties
 
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.SparkSession
 import org.infinispan.spark.examples.twitter.Sample.{getSparkConf, usage}
 import org.infinispan.spark.rdd.InfinispanRDD
 
@@ -34,17 +34,18 @@ object SQLAggregationScala {
       val infinispanProperties = new Properties
       infinispanProperties.put("infinispan.client.hotrod.server_list", infinispanHost)
 
+
       // Create RDD from infinispan data
       val infinispanRDD = new InfinispanRDD[Long, Tweet](sc, configuration = infinispanProperties)
 
       // Create a SQLContext, register a data frame and a temp table
       val valuesRDD = infinispanRDD.values
-      val sqlContext = new SQLContext(sc)
-      val dataFrame = sqlContext.createDataFrame(valuesRDD, classOf[Tweet])
-      dataFrame.registerTempTable("tweets")
+      val sparkSession = SparkSession.builder().config(conf).getOrCreate()
+      val dataFrame = sparkSession.createDataFrame(valuesRDD, classOf[Tweet])
+      dataFrame.createOrReplaceTempView("tweets")
 
       // Run the Query, collect and print results
-      sqlContext.sql("SELECT country, count(*) as c from tweets WHERE country != 'N/A' GROUP BY country ORDER BY c desc")
+      sparkSession.sql("SELECT country, count(*) as c from tweets WHERE country != 'N/A' GROUP BY country ORDER BY c desc")
               .collect().take(20).foreach(println)
 
    }

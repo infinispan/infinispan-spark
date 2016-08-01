@@ -1,6 +1,5 @@
 package org.infinispan.spark.test
 
-import org.infinispan.client.hotrod.RemoteCache
 import org.infinispan.spark.domain.Runner
 import org.scalatest.{BeforeAndAfterAll, Suite}
 

@@ -1,7 +1,5 @@
 package org.infinispan.spark.test
 
-import java.util.Properties
-
 import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaSparkContext
 import org.infinispan.spark.serializer._
