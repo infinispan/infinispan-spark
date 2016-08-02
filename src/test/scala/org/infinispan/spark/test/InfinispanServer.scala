@@ -46,6 +46,7 @@ private[test] class Cluster(size: Int, location: String) {
    private val _servers = mutable.ListBuffer[InfinispanServer]()
    private val _failed_servers = mutable.ListBuffer[InfinispanServer]()
    val CacheContainer = "clustered"
+   val ServerConfig = "clustered.xml"
    @volatile private var started = false
 
    Runtime.getRuntime.addShutdownHook(new Thread {
@@ -53,7 +54,7 @@ private[test] class Cluster(size: Int, location: String) {
    })
 
    def startServers(servers: Seq[InfinispanServer], timeOut: Duration): Boolean = {
-      val futureServers = servers.map(s => Future(s.startAndWaitForCluster(_servers.size + servers.size, timeOut)))
+      val futureServers = servers.map(s => Future(s.startAndWaitForCluster(ServerConfig, _servers.size + servers.size, timeOut)))
       val outcome = Future.sequence(futureServers)
       Await.ready(outcome, timeOut)
       val running = outcome.value match {
@@ -116,13 +117,10 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    val LaunchScript = "standalone.sh"
    val NameNodeConfig = "-Djboss.node.name"
    val LogDirConfig = "-Djboss.server.log.dir"
-   val ClusteredConfigDefault = "clustered.xml"
-   val ClusteredConfig = s"clustered-$name.xml"
    val PortOffsetConfig = "-Djboss.socket.binding.port-offset"
    val StackConfig = "-Djboss.default.jgroups.stack=tcp"
    val TimeoutConfig = "-Djgroups.join_timeout=1000"
    val DataDir = "-Djboss.server.data.dir"
-   val Protocol = "http-remoting"
    val InfinispanSubsystem = "datagrid-infinispan"
    val Host = "localhost"
    val ShutDownOp = "shutdown"
@@ -155,13 +153,15 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       override def run(): Unit = Try(shutDown())
    })
 
-   def copyConfig = {
-      val sourcePath = Paths.get(serverHome, DefaultConfigFolder, ClusteredConfigDefault)
-      val destinationPath = Paths.get(serverHome, DefaultConfigFolder, ClusteredConfig)
+   def copyConfig(config: String): String = {
+      val newConfig = s"$config-$name"
+      val sourcePath = Paths.get(serverHome, DefaultConfigFolder, config)
+      val destinationPath = Paths.get(serverHome, DefaultConfigFolder, newConfig)
       if (!destinationPath.toFile.exists) Files.copy(sourcePath, destinationPath, REPLACE_EXISTING)
+      newConfig
    }
 
-   def start() = {
+   def start(config: String) = {
       val args = ManagementFactory.getRuntimeMXBean.getInputArguments
       val isDebug = args.contains("-Dserver-debug")
       val logDir = Paths.get(serverHome, "logs")
@@ -173,9 +173,8 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
          cmd += s"--debug"
          cmd += s"${baseDebugPort + portOffSet}"
       }
+      cmd += s"-c=${copyConfig(config)}"
       if (clustered) {
-         copyConfig
-         cmd += s"-c=$ClusteredConfig"
          cmd += StackConfig
          cmd += TimeoutConfig
       }
@@ -198,14 +197,14 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 
    def isStarted = started
 
-   def startAndWaitForCluster(size: Int, duration: Duration) = {
-      start()
+   def startAndWaitForCluster(config: String, size: Int, duration: Duration) = {
+      start(config)
       waitForCacheManager("clustered")
       waitForNumberOfMembers(size, duration)
    }
 
-   def startAndWaitForCacheManager(name: String) = {
-      start()
+   def startAndWaitForCacheManager(config: String, name: String) = {
+      start(config)
       waitForCacheManager(name)
    }
 
@@ -372,10 +371,23 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    }
 }
 
-object SingleNode {
-   private val server: InfinispanServer = new InfinispanServer("/infinispan-server/", "standalone")
+sealed trait SingleNode  {
+   val ServerPath: String = "/infinispan-server/"
 
-   def start() = if (!server.isStarted) server.startAndWaitForCacheManager("local")
+   val server: InfinispanServer = new InfinispanServer(ServerPath, "standalone")
+
+   def getConfigFile: String
+
+   def start(): Unit = {
+      beforeStart()
+      start(getConfigFile)
+   }
+
+   private def start(config: String) = if (!server.isStarted) server.startAndWaitForCacheManager(config, "local")
+
+   def beforeStart(): Unit = {}
+
+   def afterShutDown(): Unit = {}
 
    def shutDown() = server.shutDown()
 
@@ -387,6 +399,24 @@ object SingleNode {
 
    def createCache(name: String, config: Option[ModelNode]) = server.addLocalCache(name, config)
 
+}
+
+object SingleStandardNode extends SingleNode {
+   override def getConfigFile = "standalone.xml"
+}
+
+object SingleSecureNode extends SingleNode {
+
+   override def getConfigFile = "../../docs/examples/configs/standalone-hotrod-ssl.xml"
+
+   val extraFiles: Seq[java.nio.file.Path] = Seq(toPath("/keystore_server.jks"),toPath("/truststore_server.jks"))
+
+   def toPath(classPath: String): java.nio.file.Path = Paths.get(getClass.getResource(classPath).getPath)
+
+   override def beforeStart() = {
+      val serverConfig = Paths.get(getClass.getResource(ServerPath).getPath, "/standalone/configuration")
+      extraFiles.foreach(f => Files.copy(f, serverConfig.resolve(f.getFileName), REPLACE_EXISTING))
+   }
 }
 
 object Cluster {

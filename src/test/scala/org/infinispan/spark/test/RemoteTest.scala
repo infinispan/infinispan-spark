@@ -44,20 +44,63 @@ sealed trait RemoteTest {
 trait SingleServer extends RemoteTest with BeforeAndAfterAll {
    this: Suite =>
 
-   override def getServerPort = SingleNode.getServerPort
+   val node: SingleNode
+
+   override def getServerPort = node.getServerPort
 
    override protected def beforeAll(): Unit = {
-      SingleNode.start()
-      withFilters().foreach(SingleNode.addFilter)
-      SingleNode.createCache(getCacheName, getCacheConfig)
+      node.start()
+      withFilters().foreach(node.addFilter)
+      node.createCache(getCacheName, getCacheConfig)
       getRemoteCache.clear()
       super.beforeAll()
    }
 
    override protected def afterAll(): Unit = {
-      withFilters().foreach(SingleNode.removeFilter)
+      withFilters().foreach(node.removeFilter)
       super.afterAll()
    }
+}
+
+
+@DoNotDiscover
+trait SingleStandardServer extends SingleServer {
+   this: Suite =>
+
+   override val node = SingleStandardNode
+}
+
+@DoNotDiscover
+trait SingleSecureServer extends SingleServer {
+   this: Suite =>
+
+   val KeyStore =  getClass.getResource("/keystore_client.jks").getFile
+   val TrustStore =  getClass.getResource("/truststore_client.jks").getFile
+   val StorePassword = "secret".toCharArray
+
+   override val node = SingleSecureNode
+
+   override protected lazy val remoteCacheManager = new RemoteCacheManager(
+      new ConfigurationBuilder().addServer().host("localhost").port(getServerPort)
+              .security().ssl().enable()
+              .keyStoreFileName(KeyStore)
+              .keyStorePassword(StorePassword)
+              .trustStoreFileName(TrustStore)
+              .trustStorePassword(StorePassword)
+              .build
+   )
+
+   override def getConfiguration = {
+      val config = super.getConfiguration
+      config.put("infinispan.client.hotrod.use_ssl", "true")
+      config.put("infinispan.client.hotrod.key_store_file_name", KeyStore)
+      config.put("infinispan.client.hotrod.trust_store_file_name", TrustStore)
+      config.put("infinispan.client.hotrod.key_store_password", "secret")
+      config.put("infinispan.client.hotrod.trust_store_password", "secret")
+      config
+   }
+
+
 }
 
 trait MultipleServers extends RemoteTest with BeforeAndAfterAll {

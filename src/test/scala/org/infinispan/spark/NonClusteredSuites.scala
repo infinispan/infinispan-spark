@@ -1,7 +1,7 @@
 package org.infinispan.spark
 
 import org.infinispan.spark.suites._
-import org.infinispan.spark.test.SingleNode
+import org.infinispan.spark.test.SingleStandardNode
 import org.scalatest.{BeforeAndAfterAll, Suites}
 
 /**
@@ -10,12 +10,12 @@ import org.scalatest.{BeforeAndAfterAll, Suites}
 class NonClusteredSuites extends Suites(new NonClusteredSuite, new WriteSuite, new JavaApiSuite, new JavaStreamApiSuite, new HiveContextSuite) with BeforeAndAfterAll {
 
    override protected def beforeAll(): Unit = {
-      SingleNode.start()
+      SingleStandardNode.start()
       super.beforeAll()
    }
 
    override protected def afterAll(): Unit = {
-      SingleNode.shutDown()
+      SingleStandardNode.shutDown()
       super.afterAll()
    }
 }

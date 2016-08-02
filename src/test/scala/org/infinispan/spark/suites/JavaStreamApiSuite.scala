@@ -1,14 +1,14 @@
 package org.infinispan.spark.suites
 
 import org.infinispan.spark.JavaStreamApiTest
-import org.infinispan.spark.test.{JavaSparkStream, SingleServer}
+import org.infinispan.spark.test.{JavaSparkStream, SingleSecureServer, SingleStandardServer}
 import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
 
 /**
  * @author gustavonalle
  */
 @DoNotDiscover
-class JavaStreamApiSuite extends FunSuite with JavaSparkStream with SingleServer with Matchers {
+class JavaStreamApiSuite extends FunSuite with JavaSparkStream with SingleStandardServer with Matchers {
 
    lazy val javaTest: JavaStreamApiTest = new JavaStreamApiTest
 
@@ -20,3 +20,6 @@ class JavaStreamApiSuite extends FunSuite with JavaSparkStream with SingleServer
       javaTest.testStreamProducer(jssc, getConfiguration, getRemoteCache)
    }
 }
+
+@DoNotDiscover
+class JavaStreamApiSecureSuite extends JavaStreamApiSuite with SingleSecureServer
