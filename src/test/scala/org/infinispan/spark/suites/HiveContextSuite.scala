@@ -3,11 +3,11 @@ package org.infinispan.spark.suites
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.infinispan.spark.domain.Runner
-import org.infinispan.spark.test.{RunnersCache, SingleServer, Spark}
+import org.infinispan.spark.test.{RunnersCache, SingleStandardServer, Spark}
 import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
 
 @DoNotDiscover
-class HiveContextSuite extends FunSuite with RunnersCache with Spark with SingleServer with Matchers {
+class HiveContextSuite extends FunSuite with RunnersCache with Spark with SingleStandardServer with Matchers {
    override protected def getNumEntries: Int = 200
 
    test("Hive SQL") {

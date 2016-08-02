@@ -61,6 +61,11 @@ infinispan.rdd.write_batch_size| Batch size (number of entries) when writing to 
 infinispan.rdd.number_server_partitions | Number of partitions created per Infinispan server | 2
 infinispan.rdd.query.proto.protofiles | Map<String, String> with protobuf file names and contents | Can be ommited if entities are [annotated](https://github.com/infinispan/infinispan/blob/master/client/hotrod-client/src/test/java/org/infinispan/client/hotrod/marshall/ProtoStreamMarshallerWithAnnotationsTest.java#L39) with protobuf encoding information. Protobuf encoding is required to filter the RDD by Query
 infinispan.rdd.query.proto.marshallers | List of protostream marshallers classes for the objects in the cache | Can be ommited if entities are [annotated](https://github.com/infinispan/infinispan/blob/master/client/hotrod-client/src/test/java/org/infinispan/client/hotrod/marshall/ProtoStreamMarshallerWithAnnotationsTest.java#L39) with protobuf encoding information. Protobuf encoding is required to filter the RDD by Query
+infinispan.client.hotrod.use_ssl | Enable SSL | false
+infinispan.client.hotrod.key_store_file_name | The JKS keystore file name, required when mutual SSL authentication is enabled in the Infinispan server. Can be either the file path or a class path resource. Examples: "/usr/local/keystore.jks", "classpath:/keystore.jks" | 
+infinispan.client.hotrod.trust_store_file_name | The JKS keystore path or classpath containing server certificates | 
+infinispan.client.hotrod.key_store_password | Password for the key store | 
+infinispan.client.hotrod.trust_store_password | Password for the trust store |   
 
 
 #### Basic usage:
