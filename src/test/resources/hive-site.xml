@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<configuration>
+
+    <property>
+        <name>javax.jdo.option.ConnectionURL</name>
+        <value>jdbc:derby:memory:metaDB;create=true</value>
+        <description>JDBC connect string for a JDBC metastore</description>
+    </property>
+</configuration>
