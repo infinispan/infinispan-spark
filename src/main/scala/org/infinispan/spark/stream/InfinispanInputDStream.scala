@@ -23,15 +23,22 @@ class InfinispanInputDStream[K, V](@transient val ssc_ : StreamingContext, stora
 
 private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: Properties) extends Receiver[(K, V, ClientEvent.Type)](storageLevel) {
 
-   @transient private lazy val remoteCache = {
-      val rcm = new RemoteCacheManager(new ConfigurationBuilder().withProperties(configuration).build())
-      getCache[K, V](configuration, rcm)
-   }
    @transient private lazy val listener = new EventListener
 
-   override def onStart(): Unit = remoteCache.addClientListener(listener)
+   @transient private var cacheManager: RemoteCacheManager = _
 
-   override def onStop(): Unit = remoteCache.removeClientListener(listener)
+   override def onStart(): Unit = {
+      cacheManager = new RemoteCacheManager(new ConfigurationBuilder().withProperties(configuration).build())
+      val remoteCache = getCache[K, V](configuration, cacheManager)
+      remoteCache.addClientListener(listener)
+   }
+
+   override def onStop(): Unit = {
+      if (cacheManager != null) {
+         cacheManager.stop()
+         cacheManager = null
+      }
+   }
 
    @ClientListener(converterFactoryName = "___eager-key-value-version-converter", useRawData = true)
    private class EventListener {
@@ -49,7 +56,7 @@ private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: Pr
       }
 
       private def emitEvent(event: ClientCacheEntryCustomEvent[Array[Byte]], ignoreValue: Boolean) = {
-         val marshaller = remoteCache.getRemoteCacheManager.getMarshaller
+         val marshaller = cacheManager.getMarshaller
          val eventData = event.getEventData
          val rawData = ByteBuffer.wrap(eventData)
          val rawKey = readElement(rawData)
