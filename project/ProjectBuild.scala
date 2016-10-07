@@ -38,7 +38,7 @@ object ProjectBuild extends Build {
             resourceGenerators in Test <+= extractServer,
             publishArtifact in Test := true,
             mappings in(Test, packageBin) ~= (_.filter(!_._1.getPath.contains("infinispan-server")))
-         ).disablePlugins(sbtassembly.AssemblyPlugin).aggregate(examplesRef)
+         ).disablePlugins(sbtassembly.AssemblyPlugin, plugins.JUnitXmlReportPlugin).aggregate(examplesRef)
 
    lazy val examples = (project in file("examples/twitter"))
          .dependsOn(core)
@@ -78,6 +78,7 @@ object ProjectBuild extends Build {
       ),
       test in assembly := {},
       parallelExecution in Test := false,
+      testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-u", s"${crossTarget.value.getAbsolutePath}/test-reports/", "-o"),
       parallelExecution in Global := false
    )
 
