@@ -54,7 +54,14 @@ private[test] class Cluster(size: Int, location: String) {
    })
 
    def startServers(servers: Seq[InfinispanServer], timeOut: Duration): Boolean = {
-      val futureServers = servers.map(s => Future(s.startAndWaitForCluster(ServerConfig, _servers.size + servers.size, timeOut)))
+      import scala.concurrent.blocking
+      val futureServers = servers.map { s =>
+         Future {
+            blocking {
+               s.startAndWaitForCluster(ServerConfig, _servers.size + servers.size, timeOut)
+            }
+         }
+      }
       val outcome = Future.sequence(futureServers)
       Await.ready(outcome, timeOut)
       val running = outcome.value match {
