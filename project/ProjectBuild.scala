@@ -65,7 +65,7 @@ object ProjectBuild extends Build {
       libraryDependencies ++= Seq(sparkCore, sparkStreaming, sparkSQL),
 
       scalacOptions <++= scalaVersion map { v =>
-         val baseFlags = Seq("-deprecation", "-encoding", "UTF-8", "-feature", "-unchecked", "-Xfatal-warnings", "-Yno-adapted-args", "-Ywarn-dead-code")
+         val baseFlags = Seq("-deprecation", "-encoding", "UTF-8", "-feature", "-unchecked", "-Yno-adapted-args", "-Ywarn-dead-code")
          if (v.startsWith("2.10"))
             baseFlags
          else
