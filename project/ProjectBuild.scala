@@ -9,6 +9,7 @@ object ProjectBuild extends Build {
    val extractServer = taskKey[Seq[File]]("Extract infinispan server")
    lazy val getSparkVersion = taskKey[Unit]("Get Spark version used")
    lazy val getInfinispanVersion = taskKey[Unit]("Get Infinispan version used")
+   lazy val ServerFolder = "infinispan-server"
 
    lazy val core = (project in file("."))
          .settings(commonSettings: _ *)
@@ -24,9 +25,10 @@ object ProjectBuild extends Build {
                val deps = report.matching(artifactFilter(name = "infinispan-server-build", extension = "zip"))
                val zipPath = deps.head.getAbsoluteFile
                val destination = (resourceManaged in Test).value
-               val destinationWithoutVersion = destination / "infinispan-server"
+               val destinationWithoutVersion = destination / ServerFolder
                IO.unzip(zipPath, destination).toSeq
                (destination ** "*infinispan-server*").get.head.renameTo(destinationWithoutVersion)
+               installScalaModule(report, destinationWithoutVersion, scalaVersion.value)
                (destinationWithoutVersion ** AllPassFilter).get
             },
             getSparkVersion := {
@@ -81,5 +83,28 @@ object ProjectBuild extends Build {
       testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-u", s"${crossTarget.value.getAbsolutePath}/test-reports/", "-o"),
       parallelExecution in Global := false
    )
+
+
+  def installScalaModule(report: UpdateReport, serverDir: File, version: String): Unit = {
+    def moduleXML(scalaLibrary: String) = {
+
+      <module xmlns="urn:jboss:module:1.3" name="org.scala">
+        <resources>
+          <resource-root path={s"$scalaLibrary"}/>
+        </resources>
+        <dependencies>
+          <module name="sun.jdk"/>
+        </dependencies>
+      </module>
+
+    }
+    val moduleFile = "module.xml"
+    val scalaLibrary = report.matching(artifactFilter(name = "scala-library")).head
+    val moduleDir = serverDir / "modules" / "org" / "scala" / "main"
+
+    IO.createDirectory(moduleDir)
+    IO.write(moduleDir / moduleFile, moduleXML(scalaLibrary.getName).toString())
+    IO.copyFile(scalaLibrary, moduleDir / scalaLibrary.getName)
+  }
 
 }

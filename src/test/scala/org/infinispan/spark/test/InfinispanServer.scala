@@ -310,7 +310,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       deployArchive(ShrinkWrap
               .create(classOf[JavaArchive], s"${filterDef.name}.jar")
               .addClasses(filterDef.allClasses: _*)
-              .setManifest(new StringAsset("Dependencies: org.scala-lang.library"))
+              .setManifest(new StringAsset("Dependencies: org.scala"))
               .addAsServiceProvider(classOf[KeyValueFilterConverterFactory[_, _, _]], filterDef.factoryImpl))
    }
 
