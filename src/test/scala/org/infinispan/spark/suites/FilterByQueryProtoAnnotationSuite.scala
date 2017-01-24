@@ -29,7 +29,7 @@ class FilterByQueryProtoAnnotationSuite extends FunSuite with RunnersCache with 
 
    test("Filter by Query") {
       val query = Search.getQueryFactory(remoteCacheManager.getCache(getCacheName)).from(classOf[Runner]).having("finishTimeSeconds")
-            .between(4000, 4500).toBuilder.build
+            .between(4000, 4500).build
 
       val rdd = createInfinispanRDD[Int, Runner].filterByQuery[Runner](query, classOf[Runner])
 
@@ -40,7 +40,7 @@ class FilterByQueryProtoAnnotationSuite extends FunSuite with RunnersCache with 
 
    test("Filter by Query with projections") {
       val query = Search.getQueryFactory(remoteCacheManager.getCache(getCacheName)).from(classOf[Runner]).select("name", "age").having("finished").equal(true)
-            .toBuilder.build()
+            .build()
 
       val rdd = createInfinispanRDD[Int, Runner].filterByQuery[Array[AnyRef]](query, classOf[Runner])
       val first = rdd.values.collect().head
