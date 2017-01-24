@@ -63,7 +63,7 @@ class InfinispanRDD[K, V](@transient val sc: SparkContext,
    }
 
    def filterByQuery[R](q: Query, c: Class[_]*) = {
-      new FilteredInfinispanRDD[K, V, R](this, Some(new FilterQuery(q, q.asInstanceOf[BaseQuery].getJPAQuery, q.asInstanceOf[BaseQuery].getNamedParameters, c: _*)), None)
+      new FilteredInfinispanRDD[K, V, R](this, Some(new FilterQuery(q, q.asInstanceOf[BaseQuery].getQueryString, q.asInstanceOf[BaseQuery].getNamedParameters, c: _*)), None)
    }
 
    def filterByCustom[R](filterFactory: String, params: AnyRef*): RDD[(K,R)] =
