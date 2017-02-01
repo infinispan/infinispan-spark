@@ -9,10 +9,10 @@ import org.apache.spark.streaming.dstream.ReceiverInputDStream
 import org.apache.spark.streaming.receiver.Receiver
 import org.infinispan.client.hotrod.RemoteCacheManager
 import org.infinispan.client.hotrod.annotation._
-import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.event.{ClientCacheEntryCustomEvent, ClientEvent}
 import org.infinispan.commons.io.UnsignedNumeric
 import org.infinispan.spark._
+import org.infinispan.spark.rdd.RemoteCacheManagerBuilder
 
 /**
  * @author gustavonalle
@@ -28,7 +28,7 @@ private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: Pr
    @transient private var cacheManager: RemoteCacheManager = _
 
    override def onStart(): Unit = {
-      cacheManager = new RemoteCacheManager(new ConfigurationBuilder().withProperties(configuration).build())
+      cacheManager = RemoteCacheManagerBuilder.create(configuration)
       val remoteCache = getCache[K, V](configuration, cacheManager)
       remoteCache.addClientListener(listener)
    }

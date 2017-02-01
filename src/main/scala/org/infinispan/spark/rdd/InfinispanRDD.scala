@@ -10,7 +10,6 @@ import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.impl.ConfigurationProperties.SERVER_LIST
 import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
 import org.infinispan.query.dsl.Query
-import org.infinispan.query.dsl.impl.BaseQuery
 import org.infinispan.spark._
 
 import scala.collection.JavaConversions._
@@ -27,8 +26,7 @@ class InfinispanRDD[K, V](@transient val sc: SparkContext,
       new ConfigurationBuilder().withProperties(properties).balancingStrategy(new PreferredServerBalancingStrategy(preferredAddress))
 
    @transient lazy val remoteCache: RemoteCache[K, V] = {
-      val config = new ConfigurationBuilder().withProperties(configuration).build()
-      val remoteCacheManager = new RemoteCacheManager(config)
+      val remoteCacheManager = RemoteCacheManagerBuilder.create(configuration)
       sc.addSparkListener(new SparkListener {
          override def onJobEnd(jobEnd: SparkListenerJobEnd): Unit = remoteCacheManager.stop()
       })
@@ -59,15 +57,15 @@ class InfinispanRDD[K, V](@transient val sc: SparkContext,
    override def count() = remoteCache.size()
 
    override def compute(split: Partition, context: TaskContext): Iterator[(K, V)] = {
-      compute(split, context, (a,p) => new RemoteCacheManager(createBuilder(a, p).build()), null, null)
+      compute(split, context, (a,p) => RemoteCacheManagerBuilder.create(p, a), null, null)
    }
 
-   def filterByQuery[R](q: Query, c: Class[_]*) = {
-      new FilteredInfinispanRDD[K, V, R](this, Some(FilterQuery(q, q.asInstanceOf[BaseQuery].getQueryString, q.asInstanceOf[BaseQuery].getParameters, c: _*)), None)
-   }
+   def filterByQuery[R](q: Query) = new FilteredQueryInfinispanRDD[K, V, R](this, QueryObjectFilter(q))
 
-   def filterByCustom[R](filterFactory: String, params: AnyRef*): RDD[(K,R)] =
-      new FilteredInfinispanRDD[K, V, R](this, None, Some(filterFactory), params:_*)
+   def filterByQuery[R](q: String) = new FilteredQueryInfinispanRDD[K, V, R](this, StringQueryFilter(q))
+
+   def filterByCustom[R](filterFactory: String, params: AnyRef*): RDD[(K, R)] =
+      new FilteredCustomInfinispanRDD[K, V, R](this, DeployedFilter(filterFactory, params: _*))
 
    override protected def getPreferredLocations(split: Partition): Seq[String] =
       Seq(split.asInstanceOf[InfinispanPartition].location.address.asInstanceOf[InetSocketAddress].getHostString)
@@ -89,5 +87,6 @@ object InfinispanRDD {
    val WriteBatchSize = "infinispan.rdd.write_batch_size"
    val PartitionsPerServer = "infinispan.rdd.number_server_partitions"
    val ProtoFiles = "infinispan.rdd.query.proto.protofiles"
+   val ProtoEntities = "infinispan.rdd.query.proto.entities"
    val Marshallers = "infinispan.rdd.query.proto.marshallers"
 }

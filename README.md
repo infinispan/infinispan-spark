@@ -59,8 +59,9 @@ infinispan.rdd.cacheName  | The name of the cache that will back the RDD | defau
 infinispan.rdd.read_batch_size  | Batch size (number of entries) when reading from the cache | 10000 | 
 infinispan.rdd.write_batch_size| Batch size (number of entries) when writing to the cache | 500
 infinispan.rdd.number_server_partitions | Number of partitions created per Infinispan server | 2
-infinispan.rdd.query.proto.protofiles | Map<String, String> with protobuf file names and contents | Can be ommited if entities are [annotated](https://github.com/infinispan/infinispan/blob/master/client/hotrod-client/src/test/java/org/infinispan/client/hotrod/marshall/ProtoStreamMarshallerWithAnnotationsTest.java#L39) with protobuf encoding information. Protobuf encoding is required to filter the RDD by Query
+infinispan.rdd.query.proto.protofiles | Map\<String, String\> with protobuf file names and contents | Can be omitted if entities are [annotated](https://github.com/infinispan/infinispan/blob/master/client/hotrod-client/src/test/java/org/infinispan/client/hotrod/marshall/ProtoStreamMarshallerWithAnnotationsTest.java#L39) with protobuf encoding information. Protobuf encoding is required to filter the RDD by Query
 infinispan.rdd.query.proto.marshallers | List of protostream marshallers classes for the objects in the cache | Can be ommited if entities are [annotated](https://github.com/infinispan/infinispan/blob/master/client/hotrod-client/src/test/java/org/infinispan/client/hotrod/marshall/ProtoStreamMarshallerWithAnnotationsTest.java#L39) with protobuf encoding information. Protobuf encoding is required to filter the RDD by Query
+infinispan.rdd.query.proto.protoclasses | Collection\<Class\> containing protobuf annotations such as @ProtoMessage and @ProtoField | Alternative to using ```infinispan.rdd.query.proto.protofiles``` and ```infinispan.rdd.query.proto.marshallers``` configurations, since both will be auto-generated based on the annotations.
 infinispan.client.hotrod.use_ssl | Enable SSL | false
 infinispan.client.hotrod.key_store_file_name | The JKS keystore file name, required when mutual SSL authentication is enabled in the Infinispan server. Can be either the file path or a class path resource. Examples: "/usr/local/keystore.jks", "classpath:/keystore.jks" | 
 infinispan.client.hotrod.trust_store_file_name | The JKS keystore path or classpath containing server certificates | 
@@ -96,7 +97,7 @@ val ssc = new StreamingContext(sc, Seconds(1))
 val stream = new InfinispanInputDStream[String, MyEntity](ssc, StorageLevel.MEMORY_ONLY, props)
 ```      
 
-##### Filtering by Query
+##### Filtering by pre-built Query object
 
 ```scala
 import org.infinispan.client.hotrod.{RemoteCacheManager, Search, RemoteCache}
@@ -108,7 +109,18 @@ val cache: RemoteCache = ...
 // Assuming MyEntity is already stored in the cache with protobuf encoding, and has protobuf annotations.
 val query = Search.getQueryFactory(cache).from(classOf[MyEntity]).having("field").equal("some value").toBuilder[RemoteQuery].build
 
-val filteredRDD = rdd.filterByQuery(query, classOf[User])
+val filteredRDD = rdd.filterByQuery(query)
+```
+
+##### Filtering using Ickle Queries
+
+```scala
+import org.infinispan.client.hotrod.{RemoteCacheManager, Search, RemoteCache}
+import org.infinispan.spark.rdd.InfinispanRDD
+
+val rdd: InfinispanRDD = ...
+
+val filteredRDD = rdd.filterByQuery("FROM MyEntity e where e.field BETWEEN 10 AND 20")
 ```
 
 ##### Filtering by deployed filter in the Infinispan server
