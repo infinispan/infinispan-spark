@@ -28,7 +28,9 @@ class InfinispanJavaRDD[K, V](rdd: InfinispanRDD[K, V])
       (implicit override val kClassTag: ClassTag[K], implicit override val vClassTag: ClassTag[V])
       extends JavaPairRDD[K, V](rdd) {
 
-   @varargs def filterByQuery[R](q: Query, c: Class[_]*) = rdd.filterByQuery(q, c: _*)
+   def filterByQuery[R](q: Query) = rdd.filterByQuery(q)
+
+   def filterByQuery[R](q: String) = rdd.filterByQuery(q)
 
    @varargs def filterByCustom[R](filterFactory: String, params: AnyRef*): JavaPairRDD[K, R] = {
       val filteredRDD = rdd.filterByCustom[R](filterFactory, params:_*)

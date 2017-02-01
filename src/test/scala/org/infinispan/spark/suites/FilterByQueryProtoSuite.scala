@@ -6,7 +6,7 @@ import java.util.Properties
 import org.apache.spark.SparkConf
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.marshall.ProtoStreamMarshaller
-import org.infinispan.client.hotrod.{RemoteCacheManager, Search}
+import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager, Search}
 import org.infinispan.protostream.FileDescriptorSource
 import org.infinispan.query.remote.client.ProtobufMetadataManagerConstants
 import org.infinispan.spark.domain._
@@ -38,6 +38,23 @@ class FilterByQueryProtoSuite extends FunSuite with Spark with MultipleServers w
       rcm
    }
 
+   lazy val remoteCache: RemoteCache[Int, Person] = {
+      val defaultCache = remoteCacheManager.getCache[Int, Person]
+      (1 to 20).foreach { idx =>
+         defaultCache.put(idx, new Person(s"name$idx", idx, new Address(s"street$idx", idx, "N/A")));
+      }
+      defaultCache
+   }
+
+   lazy val configuration = {
+      val configuration = new Properties
+
+      configuration.put(InfinispanRDD.ProtoFiles, protoConfig)
+      configuration.put(InfinispanRDD.Marshallers, Seq(classOf[AddressMarshaller], classOf[PersonMarshaller]))
+      configuration.put("infinispan.client.hotrod.server_list", Seq("localhost", getServerPort).mkString(":"))
+      configuration
+   }
+
 
    val protoFile =
       """
@@ -66,25 +83,22 @@ class FilterByQueryProtoSuite extends FunSuite with Spark with MultipleServers w
 
 
    test("Filter by Query with proto file and provided marshallers") {
-
-      val defaultCache = remoteCacheManager.getCache[Int, Person]
-      (1 to 20).foreach { idx =>
-         defaultCache.put(idx, new Person(s"name$idx", idx, new Address(s"street$idx", idx, "N/A")));
-      }
-
-      val configuration = new Properties
-
-      configuration.put(InfinispanRDD.ProtoFiles, protoConfig)
-      configuration.put(InfinispanRDD.Marshallers, Seq(classOf[AddressMarshaller], classOf[PersonMarshaller]))
-      configuration.put("infinispan.client.hotrod.server_list", Seq("localhost", getServerPort).mkString(":"))
-
-
       val rdd = new InfinispanRDD[Int, Person](sc, configuration)
 
-      val query = Search.getQueryFactory(defaultCache)
-              .from(classOf[Person]).having("address.number").gt(10).build()
+      val query = Search.getQueryFactory(remoteCache).from(classOf[Person]).having("address.number").gt(10).build()
 
-      val filteredRdd = rdd.filterByQuery[Person](query, classOf[Person])
+      val filteredRdd = rdd.filterByQuery[Person](query)
+
+      val result = filteredRdd.values.collect()
+
+      result.length shouldBe 10
+      result.sortWith(_.getName > _.getName).head.getName shouldBe "name20"
+   }
+
+   test("Filter by Query String") {
+       val rdd = new InfinispanRDD[Int, Person](sc, configuration)
+
+      val filteredRdd = rdd.filterByQuery[Person]("From org.infinispan.spark.domain.Person p where p.address.number > 10")
 
       val result = filteredRdd.values.collect()
 

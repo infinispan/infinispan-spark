@@ -5,10 +5,9 @@ import java.util.Properties
 
 import org.apache.spark.TaskContext
 import org.apache.spark.rdd.RDD
-import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.impl.ConfigurationProperties._
 import org.infinispan.client.hotrod.{CacheTopologyInfo, RemoteCacheManager}
-import org.infinispan.spark.rdd.InfinispanRDD
+import org.infinispan.spark.rdd.{RemoteCacheManagerBuilder, InfinispanRDD}
 
 import scala.collection.JavaConversions._
 
@@ -36,7 +35,7 @@ package object spark {
 
       def writeToInfinispan(configuration: Properties): Unit = {
          val processor = (ctx: TaskContext, iterator: Iterator[(K, V)]) => {
-            val remoteCacheManager = new RemoteCacheManager(new ConfigurationBuilder().withProperties(configuration).build())
+            val remoteCacheManager = RemoteCacheManagerBuilder.create(configuration)
             val cache = getCache[K, V](configuration, remoteCacheManager)
             configuration.put(SERVER_LIST, getCacheTopology(cache.getCacheTopologyInfo))
             ctx.addTaskCompletionListener(ctx => remoteCacheManager.stop())
@@ -46,10 +45,7 @@ package object spark {
       }
 
       private class InfinispanWriteJob(val configuration: Properties) extends Serializable {
-         private def getCacheManager: RemoteCacheManager = {
-            val builder = new ConfigurationBuilder().withProperties(configuration)
-            new RemoteCacheManager(builder.build())
-         }
+         private def getCacheManager: RemoteCacheManager = RemoteCacheManagerBuilder.create(configuration)
 
          def runJob(iterator: Iterator[(K, V)], ctx: TaskContext): Unit = {
             val remoteCacheManager = getCacheManager
