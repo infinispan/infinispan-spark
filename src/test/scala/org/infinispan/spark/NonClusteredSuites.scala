@@ -5,9 +5,10 @@ import org.infinispan.spark.test.SingleStandardNode
 import org.scalatest.{BeforeAndAfterAll, Suites}
 
 /**
- * Aggregates all suites that require a single non clustered server.
- */
-class NonClusteredSuites extends Suites(new NonClusteredSuite, new WriteSuite, new JavaApiSuite, new JavaStreamApiSuite, new HiveContextSuite) with BeforeAndAfterAll {
+  * Aggregates all suites that require a single non clustered server.
+  */
+class NonClusteredSuites extends Suites(new NonClusteredSuite, new WriteSuite, new JavaApiSuite, new JavaStreamApiSuite,
+   new HiveContextSuite, new WriteWithProtoSuite) with BeforeAndAfterAll {
 
    override protected def beforeAll(): Unit = {
       SingleStandardNode.start()

@@ -15,7 +15,7 @@ import org.infinispan.spark._
 class FilteredQueryInfinispanRDD[K, V, R](parent: InfinispanRDD[K, V], filter: QueryFilter) extends RDD[(K, R)](parent.sc, Nil) {
 
    @transient lazy val remoteCacheManager = {
-      val remoteCacheManager = RemoteCacheManagerBuilder.createForQuery(parent.configuration)
+      val remoteCacheManager = RemoteCacheManagerBuilder.create(parent.configuration)
 
       context.addSparkListener(new SparkListener {
          override def onJobEnd(jobEnd: SparkListenerJobEnd): Unit = remoteCacheManager.stop()
@@ -36,7 +36,7 @@ class FilteredQueryInfinispanRDD[K, V, R](parent: InfinispanRDD[K, V], filter: Q
    override def compute(split: Partition, context: TaskContext): Iterator[(K, R)] = parent.compute(
       split,
       context,
-      (a, p) => RemoteCacheManagerBuilder.createForQuery(p, a),
+      (a, p) => RemoteCacheManagerBuilder.create(p, a),
       filter.name,
       filter.params.toArray
    )
