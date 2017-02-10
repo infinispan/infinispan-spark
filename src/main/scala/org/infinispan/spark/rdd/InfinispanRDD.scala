@@ -89,4 +89,5 @@ object InfinispanRDD {
    val ProtoFiles = "infinispan.rdd.query.proto.protofiles"
    val ProtoEntities = "infinispan.rdd.query.proto.entities"
    val Marshallers = "infinispan.rdd.query.proto.marshallers"
+   val RegisterSchemas = "infinispan.rdd.query.proto.autoregister"
 }
