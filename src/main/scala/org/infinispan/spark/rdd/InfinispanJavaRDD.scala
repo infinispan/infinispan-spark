@@ -15,7 +15,11 @@ import scala.reflect.ClassTag
 object InfinispanJavaRDD {
 
    def createInfinispanRDD[K, V](jsc: JavaSparkContext, config: Properties): InfinispanJavaRDD[K, V] = {
-      val infinispanRDD = new InfinispanRDD[K, V](jsc.sc, config, new PerServerSplitter)
+      createInfinispanRDD(jsc.sc, config, new PerServerSplitter)
+   }
+
+   def createInfinispanRDD[K, V](jsc: JavaSparkContext, config: Properties, splitter: Splitter): InfinispanJavaRDD[K, V] = {
+      val infinispanRDD = new InfinispanRDD[K, V](jsc.sc, config, splitter)
       implicit val keyClassTag = ClassTag.AnyRef.asInstanceOf[ClassTag[K]]
       implicit val valueClassTag = ClassTag.AnyRef.asInstanceOf[ClassTag[V]]
       new InfinispanJavaRDD[K, V](infinispanRDD)

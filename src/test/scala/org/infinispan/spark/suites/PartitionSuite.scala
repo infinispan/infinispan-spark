@@ -58,7 +58,7 @@ class PartitionSuite extends FunSuite with Matchers {
    implicit def unwrap(p: Partition): InfinispanPartition = p.asInstanceOf[InfinispanPartition]
 
    def assertAllSegmentsPresent(partitions: Array[Partition], numSegments: Int) = {
-      partitions.flatMap(_.segments).flatten.toSet shouldBe Set(0 to numSegments - 1: _*)
+      partitions.flatMap(_.segments).toSet shouldBe Set(0 until numSegments: _*)
    }
 
    def assertIdxCrescent(partitions: Array[Partition]) = {
@@ -67,7 +67,7 @@ class PartitionSuite extends FunSuite with Matchers {
    }
 
    def assertNoDuplicateSegments(partitions: Array[Partition], numSegments: Int) = {
-      partitions.flatMap(_.segments).flatten.toList.size shouldBe numSegments
+      partitions.flatMap(_.segments).size shouldBe numSegments
    }
 
    def assertLocations(partitions: Array[Partition], numServers: Int, partitionsPerServer: Int) = {
@@ -108,7 +108,7 @@ class PartitionSuite extends FunSuite with Matchers {
    private def createServerTopology(numSegments: Int, numOwners: Int, numServers: Int) = {
       val servers = (1 to numServers).map(i => makeServer(s"server$i", 0)).toList
       val serversStream = (Iterator continually servers).flatten
-      val s = (for (i <- 0 to numSegments - 1) yield int2Integer(i) -> serversStream.take(numOwners).toSet).toMap
+      val s = (for (i <- 0 until numSegments) yield int2Integer(i) -> serversStream.take(numOwners).toSet).toMap
       new CacheTopologyInfo {
          override def getSegmentsPerServer = mapAsJavaMap(reverse(s).mapValues(setAsJavaSet))
 

@@ -84,6 +84,18 @@ config.put("infinispan.client.hotrod.server_list","10.9.0.8:11222")
 val infinispanRDD = new InfinispanRDD[String, MyEntity](sc, configuration = config)
 ```
 
+##### Creating an RDD Using a custom Splitter
+
+```scala
+import java.util.Properties
+import org.infinispan.spark.rdd._
+
+val config =  ...
+val mySplitter = new CustomSplitter(...)
+val infinispanRDD = new InfinispanRDD[String, MyEntity](sc, config, mySplitter)
+```
+
+
 ##### Creating a DStream
 
 ```scala

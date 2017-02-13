@@ -12,8 +12,6 @@ import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
 import org.infinispan.query.dsl.Query
 import org.infinispan.spark._
 
-import scala.collection.JavaConversions._
-
 /**
  * @author gustavonalle
  */
@@ -44,7 +42,7 @@ class InfinispanRDD[K, V](@transient val sc: SparkContext,
       val address = infinispanPartition.location.address.asInstanceOf[InetSocketAddress]
       val remoteCacheManager = cacheManagerProvider(address, config)
       val cache = getCache(config, remoteCacheManager)
-      val segmentFilter = infinispanPartition.segments.map(setAsJavaSet).orNull
+      val segmentFilter = infinispanPartition.segments
       val closeableIterator = cache.retrieveEntries(filterFactory, factoryParams, segmentFilter, batch)
 
       context.addTaskCompletionListener(t => {
