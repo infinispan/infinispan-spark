@@ -17,13 +17,16 @@ import org.infinispan.spark.rdd.RemoteCacheManagerBuilder
 /**
  * @author gustavonalle
  */
-class InfinispanInputDStream[K, V](@transient val ssc_ : StreamingContext, storage: StorageLevel, configuration: Properties) extends ReceiverInputDStream[(K, V, ClientEvent.Type)](ssc_) {
-   override def getReceiver(): Receiver[(K, V, ClientEvent.Type)] = new EventsReceiver(storage, configuration)
+class InfinispanInputDStream[K, V](@transient val ssc_ : StreamingContext, storage: StorageLevel,
+                                   configuration: Properties, includeState: Boolean = false)
+   extends ReceiverInputDStream[(K, V, ClientEvent.Type)](ssc_) {
+   override def getReceiver(): Receiver[(K, V, ClientEvent.Type)] = new EventsReceiver(storage, configuration, includeState)
 }
 
-private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: Properties) extends Receiver[(K, V, ClientEvent.Type)](storageLevel) {
+private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: Properties,includeState: Boolean)
+   extends Receiver[(K, V, ClientEvent.Type)](storageLevel) {
 
-   @transient private lazy val listener = new EventListener
+   @transient private lazy val listener = if(includeState) new EventListenerWithState else new EventListenerWithoutState
 
    @transient private var cacheManager: RemoteCacheManager = _
 
@@ -40,8 +43,7 @@ private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: Pr
       }
    }
 
-   @ClientListener(converterFactoryName = "___eager-key-value-version-converter", useRawData = true)
-   private class EventListener {
+   private sealed trait EventListener {
 
       @ClientCacheEntryRemoved
       @ClientCacheEntryExpired
@@ -76,5 +78,11 @@ private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: Pr
          element
       }
    }
+
+   @ClientListener(converterFactoryName = "___eager-key-value-version-converter", useRawData = true, includeCurrentState = true)
+   private class EventListenerWithState extends EventListener
+
+   @ClientListener(converterFactoryName = "___eager-key-value-version-converter", useRawData = true, includeCurrentState = false)
+   private class EventListenerWithoutState extends EventListener
 
 }

@@ -81,6 +81,22 @@ class StreamingSuite extends FunSuite with SparkStream with MultipleServers with
       eventsOfType(streamDump)(CLIENT_CACHE_ENTRY_EXPIRED) shouldBe 1
    }
 
+   test("test stream with current state") {
+      val cache = getRemoteCache.asInstanceOf[RemoteCache[Int, String]]
+      cache.clear()
+
+      (0 until 50).foreach(n => cache.put(n, s"value$n"))
+
+      val stream = new InfinispanInputDStream[Int, Runner](ssc, StorageLevel.MEMORY_ONLY, getProperties, includeState = true)
+
+      val streamDump = mutable.Set[(Int, Runner, ClientEvent.Type)]()
+
+      stream.foreachRDD(rdd => streamDump ++= rdd.collect())
+      ssc.start()
+
+      waitForCondition(() => streamDump.size == 50)
+   }
+
    private def eventsOfType(streamDump: Set[(Int, Runner, ClientEvent.Type)])(eventType: ClientEvent.Type): Int = {
       streamDump.count { case (_, _, t) => t == eventType }
    }
