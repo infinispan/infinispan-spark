@@ -1,6 +1,7 @@
 package org.infinispan.spark.rdd
 
 import java.net.SocketAddress
+import java.util
 import java.util.Properties
 
 import org.apache.spark.Partition
@@ -12,18 +13,29 @@ import scala.collection.mutable
 
 
 /**
- * @author gustavonalle
- */
+  * The Splitter is responsible to produce one or more [[org.infinispan.spark.rdd.InfinispanPartition]] that will
+  * execute the job on a certain slice of the data. On Infinispan, data is spread roughly equally across multiple
+  * segments.
+  *
+  * @author gustavonalle
+  */
 trait Splitter {
 
+   /**
+     * Creates partitions based on a certain cluster topology.
+     *
+     * @param cacheTopology [[CacheTopologyInfo]] holding information of servers and segments ownership.
+     * @param properties [[Properties]] used to configure the RDD
+     * @return an array of [[InfinispanPartition]]
+     */
    def split(cacheTopology: CacheTopologyInfo, properties: Properties): Array[Partition]
 }
 
 /**
- * Create one or more partition per server so that:
- * - Each partition will only contain segments owned by the associated server
- * - A segment is unique across partitions
- */
+  * Create one or more partition per server so that:
+  * - Each partition will only contain segments owned by the associated server
+  * - A segment is unique across partitions
+  */
 class PerServerSplitter extends Splitter {
 
    override def split(cacheTopology: CacheTopologyInfo, properties: Properties) = {
@@ -56,10 +68,11 @@ class PerServerSplitter extends Splitter {
 
          val pps = properties.readWithDefault[Int](InfinispanRDD.PartitionsPerServer)(default = InfinispanRDD.DefaultPartitionsPerServer)
          result.toStream.flatMap { case (a, b) => cut(b.toSeq, pps).map((a, _)) }.zipWithIndex.map { case ((server, segs), idx) =>
-            new InfinispanPartition(idx, Location(server), Some(segs), properties)
+            new InfinispanPartition(idx, Location(server), toJavaSet(segs), properties)
          }.toArray
       }
    }
+   private def toJavaSet(s: Set[Integer]) = new util.HashSet[Integer](s)
 
    private def cut[A](l: Seq[A], parts: Int) = (0 until parts).map { i => l.drop(i).sliding(1, parts).flatten.toSet }.filter(_.nonEmpty)
 
