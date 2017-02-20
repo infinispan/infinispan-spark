@@ -63,15 +63,11 @@ object ProjectBuild extends Build {
 
    def commonSettings = Seq(
       scalaVersion := "2.11.8",
-      crossScalaVersions := Seq("2.10.6", "2.11.8"),
       libraryDependencies ++= Seq(sparkCore, sparkStreaming, sparkSQL),
 
       scalacOptions <++= scalaVersion map { v =>
          val baseFlags = Seq("-deprecation", "-encoding", "UTF-8", "-feature", "-unchecked", "-Yno-adapted-args", "-Ywarn-dead-code")
-         if (v.startsWith("2.10"))
-            baseFlags
-         else
-            baseFlags ++ Seq("-Xlint:_,-nullary-unit", "-Ywarn-unused", "-Ywarn-unused-import")
+         baseFlags ++ Seq("-Xlint:_,-nullary-unit", "-Ywarn-unused", "-Ywarn-unused-import")
       },
       resolvers ++= Seq(
           "Local Maven" at Path.userHome.asFile.toURI.toURL + ".m2/repository",
