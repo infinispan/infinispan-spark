@@ -11,7 +11,7 @@ cat << EOF
    -t Twitter access token
    -s Twitter acess token secret
    -d Maximum duration in seconds to run the job (default: -1, run forever)
-   -v Connector Scala version (2.10 or 2.11, default 2.10)
+   -v Connector Scala version (default 2.11)
    -h help
 EOF
 }
@@ -55,7 +55,7 @@ fi
 
 CLASSNAME=${m}
 DURATION=${d:--1}
-SCALA_VERSION=${v:-2.10}
+SCALA_VERSION=${v:-2.11}
 
 echo "Obtaining Spark master"
 SPARK_MASTER_NAME="sparkMaster"
