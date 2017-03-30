@@ -8,7 +8,7 @@ import org.scalatest.{BeforeAndAfterAll, Suites}
   * Aggregates all suites that require a single non clustered server.
   */
 class NonClusteredSuites extends Suites(new NonClusteredSuite, new WriteSuite, new JavaApiSuite, new JavaStreamApiSuite,
-   new HiveContextSuite, new WriteWithProtoSuite) with BeforeAndAfterAll {
+   new JavaProtobufSuite, new HiveContextSuite, new WriteWithProtoSuite) with BeforeAndAfterAll {
 
    override protected def beforeAll(): Unit = {
       SingleStandardNode.start()

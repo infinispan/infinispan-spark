@@ -1,9 +1,8 @@
 package org.infinispan.spark.test
 
-import java.util.Properties
-
 import org.apache.spark.Partition
 import org.infinispan.client.hotrod.CacheTopologyInfo
+import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.rdd.{InfinispanPartition, Location, Splitter}
 
 import scala.collection.JavaConversions._
@@ -16,9 +15,9 @@ class FixedPartitionsSplitter(numPartitions: Int) extends Splitter {
 
    @volatile var lastSplitCount = 0
 
-   private def toJavaSet(s: Set[Int]) = new java.util.HashSet(s.map(e => e:java.lang.Integer))
+   private def toJavaSet(s: Set[Int]) = new java.util.HashSet(s.map(e => e: java.lang.Integer))
 
-   override def split(cacheTopology: CacheTopologyInfo, properties: Properties): Array[Partition] = {
+   override def split(cacheTopology: CacheTopologyInfo, properties: ConnectorConfiguration): Array[Partition] = {
       val servers = cacheTopology.getSegmentsPerServer.keys.toList
       val serverIterator = Iterator.continually(servers.map(new Location(_))).flatten
       val segments = (0 until cacheTopology.getNumSegments).toSet

@@ -20,10 +20,8 @@ class RDDFailOverSuite extends FunSuite with Matchers with Spark with MultipleSe
    override def getCacheType = CacheType.DISTRIBUTED
 
    override def getConfiguration = {
-      val properties = super.getConfiguration
-      properties.put("infinispan.client.hotrod.server_list", "127.0.0.1:11222")
-      properties.put("infinispan.rdd.write_batch_size", int2Integer(5))
-      properties
+      super.getConfiguration.setServerList("127.0.0.1:11222")
+        .setWriteBatchSize(5)
    }
 
    test("RDD read failover") {
@@ -35,7 +33,7 @@ class RDDFailOverSuite extends FunSuite with Matchers with Spark with MultipleSe
 
       val ispnIter = infinispanRDD.toLocalIterator
       var count = 0
-      for (i <- 1 to NumEntries/Cluster.getClusterSize) {
+      for (i <- 1 to NumEntries / Cluster.getClusterSize) {
          ispnIter.next()
          count += 1
       }
@@ -59,7 +57,7 @@ class RDDFailOverSuite extends FunSuite with Matchers with Spark with MultipleSe
       val rdd = sc.parallelize(range1.zip(entities1))
 
       val writeRDD = Future(rdd.writeToInfinispan(getConfiguration))
-      waitForCondition ({ () =>
+      waitForCondition({ () =>
          cache.size() > 0 //make sure we are already writing into the cache
       }, 2 seconds)
       Cluster.failServer(0)

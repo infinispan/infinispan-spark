@@ -1,10 +1,10 @@
 package org.infinispan.spark.domain;
 
 
+import java.io.Serializable;
+
 import org.infinispan.protostream.annotations.ProtoField;
 import org.infinispan.protostream.annotations.ProtoMessage;
-
-import java.io.Serializable;
 
 /**
  * @author gustavonalle
@@ -64,5 +64,15 @@ public class Runner implements Serializable {
 
    public void setAge(int age) {
       this.age = age;
+   }
+
+   @Override
+   public String toString() {
+      return "Runner{" +
+            "name='" + name + '\'' +
+            ", finished=" + finished +
+            ", finishTimeSeconds=" + finishTimeSeconds +
+            ", age=" + age +
+            '}';
    }
 }

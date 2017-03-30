@@ -1,13 +1,12 @@
 package org.infinispan
 
 import java.net.InetSocketAddress
-import java.util.Properties
 
 import org.apache.spark.TaskContext
 import org.apache.spark.rdd.RDD
-import org.infinispan.client.hotrod.impl.ConfigurationProperties._
 import org.infinispan.client.hotrod.{CacheTopologyInfo, RemoteCacheManager}
-import org.infinispan.spark.rdd.{RemoteCacheManagerBuilder, InfinispanRDD}
+import org.infinispan.spark.config.ConnectorConfiguration
+import org.infinispan.spark.rdd.RemoteCacheManagerBuilder
 
 import scala.collection.JavaConversions._
 
@@ -20,45 +19,37 @@ package object spark {
       }.mkString(";")
    }
 
-   def getCache[K, V](config: Properties, rcm: RemoteCacheManager) = {
-      val cacheName = config.getProperty(InfinispanRDD.CacheName)
+   def getCache[K, V](config: ConnectorConfiguration, rcm: RemoteCacheManager) = {
+      val cacheName = config.getCacheName
       Option(cacheName).map(name => rcm.getCache[K, V](name)).getOrElse(rcm.getCache[K, V])
-   }
-
-   implicit class EnhancedProperties(props: Properties) {
-      def readWithDefault[T](key: String)(default: T) = read[T](key).getOrElse(default)
-
-      def read[T](key: String): Option[T] = Option(props.get(key)).map(_.asInstanceOf[T])
    }
 
    implicit class RDDExtensions[K, V](rdd: RDD[(K, V)]) extends Serializable {
 
-      def writeToInfinispan(configuration: Properties): Unit = {
+      def writeToInfinispan(configuration: ConnectorConfiguration): Unit = {
          val processor = (ctx: TaskContext, iterator: Iterator[(K, V)]) => {
             val remoteCacheManager = RemoteCacheManagerBuilder.create(configuration)
             val cache = getCache[K, V](configuration, remoteCacheManager)
-            configuration.put(SERVER_LIST, getCacheTopology(cache.getCacheTopologyInfo))
+            configuration.setServerList(getCacheTopology(cache.getCacheTopologyInfo))
             ctx.addTaskCompletionListener(ctx => remoteCacheManager.stop())
             new InfinispanWriteJob(configuration).runJob(iterator, ctx)
          }
          rdd.sparkContext.runJob(rdd, processor)
       }
 
-      private class InfinispanWriteJob(val configuration: Properties) extends Serializable {
+      private class InfinispanWriteJob(val configuration: ConnectorConfiguration) extends Serializable {
          private def getCacheManager: RemoteCacheManager = RemoteCacheManagerBuilder.create(configuration)
 
          def runJob(iterator: Iterator[(K, V)], ctx: TaskContext): Unit = {
             val remoteCacheManager = getCacheManager
             ctx.addTaskCompletionListener { f => remoteCacheManager.stop() }
             val cache = getCache[K, V](configuration, remoteCacheManager)
-            val batchSize = configuration.readWithDefault[Int](InfinispanRDD.WriteBatchSize)(InfinispanRDD.DefaultWriteBatchSize)
+            val batchSize = configuration.getWriteBatchSize
             iterator.grouped(batchSize).foreach(kv => cache.putAll(mapAsJavaMap(kv.toMap)))
          }
       }
 
    }
-
-
 
 
 }

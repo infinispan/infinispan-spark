@@ -1,7 +1,7 @@
 package org.infinispan.spark.suites
 
 import org.infinispan.spark.JavaApiTest
-import org.infinispan.spark.domain.{Address, Person}
+import org.infinispan.spark.domain._
 import org.infinispan.spark.test.SampleFilters.AgeFilterFactory
 import org.infinispan.spark.test.{FilterDef, JavaSpark, SingleStandardServer}
 import org.scalatest._
@@ -9,7 +9,8 @@ import org.scalatest._
 @DoNotDiscover
 class JavaApiSuite extends FunSuite with JavaSpark with SingleStandardServer with Matchers {
 
-   lazy val javaTest: JavaApiTest = new JavaApiTest(jsc, getRemoteCache, getConfiguration)
+   lazy val javaTest: JavaApiTest = new JavaApiTest(jsc, sparkSession, getRemoteCache, getConfiguration)
+
 
    override def withFilters() = List(
       new FilterDef(

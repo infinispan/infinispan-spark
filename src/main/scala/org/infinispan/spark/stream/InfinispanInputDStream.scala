@@ -1,7 +1,6 @@
 package org.infinispan.spark.stream
 
 import java.nio._
-import java.util.Properties
 
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.StreamingContext
@@ -12,21 +11,22 @@ import org.infinispan.client.hotrod.annotation._
 import org.infinispan.client.hotrod.event.{ClientCacheEntryCustomEvent, ClientEvent}
 import org.infinispan.commons.io.UnsignedNumeric
 import org.infinispan.spark._
+import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.rdd.RemoteCacheManagerBuilder
 
 /**
- * @author gustavonalle
- */
+  * @author gustavonalle
+  */
 class InfinispanInputDStream[K, V](@transient val ssc_ : StreamingContext, storage: StorageLevel,
-                                   configuration: Properties, includeState: Boolean = false)
-   extends ReceiverInputDStream[(K, V, ClientEvent.Type)](ssc_) {
+                                   configuration: ConnectorConfiguration, includeState: Boolean = false)
+  extends ReceiverInputDStream[(K, V, ClientEvent.Type)](ssc_) {
    override def getReceiver(): Receiver[(K, V, ClientEvent.Type)] = new EventsReceiver(storage, configuration, includeState)
 }
 
-private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: Properties,includeState: Boolean)
-   extends Receiver[(K, V, ClientEvent.Type)](storageLevel) {
+private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: ConnectorConfiguration, includeState: Boolean)
+  extends Receiver[(K, V, ClientEvent.Type)](storageLevel) {
 
-   @transient private lazy val listener = if(includeState) new EventListenerWithState else new EventListenerWithoutState
+   @transient private lazy val listener = if (includeState) new EventListenerWithState else new EventListenerWithoutState
 
    @transient private var cacheManager: RemoteCacheManager = _
 

@@ -1,18 +1,13 @@
 package org.infinispan.spark.suites
 
-import java.util.Properties
-
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.marshall.ProtoStreamMarshaller
 import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager, Search}
 import org.infinispan.protostream.annotations.ProtoSchemaBuilder
 import org.infinispan.spark._
 import org.infinispan.spark.domain.Runner
-import org.infinispan.spark.rdd.InfinispanRDD
 import org.infinispan.spark.test.{SingleStandardServer, Spark}
 import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
-
-import java.lang.Boolean._
 
 @DoNotDiscover
 class WriteWithProtoSuite extends FunSuite with Spark with SingleStandardServer with Matchers {
@@ -39,10 +34,7 @@ class WriteWithProtoSuite extends FunSuite with Spark with SingleStandardServer 
       runners.size shouldBe 1
    }
 
-   override def getConfiguration: Properties = {
-      val config = super.getConfiguration
-      config.put(InfinispanRDD.ProtoEntities, Seq(classOf[Runner]))
-      config.put(InfinispanRDD.RegisterSchemas, TRUE)
-      config
+   override def getConfiguration = {
+      super.getConfiguration.addProtoAnnotatedClass(classOf[Runner]).setAutoRegisterProto()
    }
 }

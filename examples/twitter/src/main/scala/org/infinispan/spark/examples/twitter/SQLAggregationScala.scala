@@ -1,18 +1,17 @@
 package org.infinispan.spark.examples.twitter
 
-import java.util.Properties
-
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SparkSession
+import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.examples.twitter.Sample.{getSparkConf, usage}
 import org.infinispan.spark.rdd.InfinispanRDD
 
 /**
- * This demo will group tweets by country and print the top 20 countries, using Spark SQL support.
- *
- * @author gustavonalle
- */
+  * This demo will group tweets by country and print the top 20 countries, using Spark SQL support.
+  *
+  * @author gustavonalle
+  */
 object SQLAggregationScala {
 
    def main(args: Array[String]) {
@@ -31,12 +30,10 @@ object SQLAggregationScala {
       val sc = new SparkContext(conf)
 
       // Populate infinispan properties
-      val infinispanProperties = new Properties
-      infinispanProperties.put("infinispan.client.hotrod.server_list", infinispanHost)
-
+      val config = new ConnectorConfiguration().setServerList(infinispanHost)
 
       // Create RDD from infinispan data
-      val infinispanRDD = new InfinispanRDD[Long, Tweet](sc, configuration = infinispanProperties)
+      val infinispanRDD = new InfinispanRDD[Long, Tweet](sc, config)
 
       // Create a SQLContext, register a data frame and a temp table
       val valuesRDD = infinispanRDD.values
@@ -46,7 +43,7 @@ object SQLAggregationScala {
 
       // Run the Query, collect and print results
       sparkSession.sql("SELECT country, count(*) as c from tweets WHERE country != 'N/A' GROUP BY country ORDER BY c desc")
-              .collect().take(20).foreach(println)
+        .collect().take(20).foreach(println)
 
    }
 
