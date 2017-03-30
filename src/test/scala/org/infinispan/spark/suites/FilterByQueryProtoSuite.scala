@@ -1,14 +1,8 @@
 package org.infinispan.spark.suites
 
-import java.util
-import java.util.Properties
-
 import org.apache.spark.SparkConf
-import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
-import org.infinispan.client.hotrod.marshall.ProtoStreamMarshaller
-import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager, Search}
-import org.infinispan.protostream.FileDescriptorSource
-import org.infinispan.query.remote.client.ProtobufMetadataManagerConstants
+import org.infinispan.client.hotrod.{RemoteCache, Search}
+import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.domain._
 import org.infinispan.spark.rdd.InfinispanRDD
 import org.infinispan.spark.test._
@@ -25,17 +19,12 @@ class FilterByQueryProtoSuite extends FunSuite with Spark with MultipleServers w
       config
    }
 
-   override lazy val remoteCacheManager: RemoteCacheManager = {
-      val rcm = new RemoteCacheManager(
-         new ConfigurationBuilder().addServer().host("localhost").port(getServerPort).marshaller(new ProtoStreamMarshaller).build()
-      )
-      rcm.getCache(ProtobufMetadataManagerConstants.PROTOBUF_METADATA_CACHE_NAME).put("test.proto", protoFile)
-
-      val serCtx = ProtoStreamMarshaller.getSerializationContext(rcm)
-      serCtx.registerProtoFiles(FileDescriptorSource.fromString("test.proto", protoFile))
-      serCtx.registerMarshaller(new AddressMarshaller)
-      serCtx.registerMarshaller(new PersonMarshaller)
-      rcm
+   override def getConfiguration: ConnectorConfiguration = {
+      new ConnectorConfiguration()
+        .addProtoFile("test.proto", protoFile)
+        .setAutoRegisterProto()
+        .addMessageMarshaller(classOf[AddressMarshaller])
+        .addMessageMarshaller(classOf[PersonMarshaller])
    }
 
    lazy val remoteCache: RemoteCache[Int, Person] = {
@@ -45,16 +34,6 @@ class FilterByQueryProtoSuite extends FunSuite with Spark with MultipleServers w
       }
       defaultCache
    }
-
-   lazy val configuration = {
-      val configuration = new Properties
-
-      configuration.put(InfinispanRDD.ProtoFiles, protoConfig)
-      configuration.put(InfinispanRDD.Marshallers, Seq(classOf[AddressMarshaller], classOf[PersonMarshaller]))
-      configuration.put("infinispan.client.hotrod.server_list", Seq("localhost", getServerPort).mkString(":"))
-      configuration
-   }
-
 
    val protoFile =
       """
@@ -74,16 +53,8 @@ class FilterByQueryProtoSuite extends FunSuite with Spark with MultipleServers w
 
       """.stripMargin
 
-
-   val protoConfig = {
-      val map = new util.HashMap[String, String]()
-      map.put("test.proto", protoFile)
-      map
-   }
-
-
    test("Filter by Query with proto file and provided marshallers") {
-      val rdd = new InfinispanRDD[Int, Person](sc, configuration)
+      val rdd = new InfinispanRDD[Int, Person](sc, getConfiguration)
 
       val query = Search.getQueryFactory(remoteCache).from(classOf[Person]).having("address.number").gt(10).build()
 
@@ -96,7 +67,7 @@ class FilterByQueryProtoSuite extends FunSuite with Spark with MultipleServers w
    }
 
    test("Filter by Query String") {
-       val rdd = new InfinispanRDD[Int, Person](sc, configuration)
+      val rdd = new InfinispanRDD[Int, Person](sc, getConfiguration)
 
       val filteredRdd = rdd.filterByQuery[Person]("From org.infinispan.spark.domain.Person p where p.address.number > 10")
 

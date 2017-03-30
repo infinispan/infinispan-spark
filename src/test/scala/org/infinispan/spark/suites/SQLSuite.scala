@@ -39,7 +39,6 @@ class SQLSuite extends FunSuite with RunnersCache with Spark with MultipleServer
    }
 
 
-
    private def withSession(f: (SparkSession, RDD[Runner]) => Any) = {
       val runnersRDD = createInfinispanRDD[Integer, Runner].values
       val session = SparkSession.builder().config(getSparkConfig).getOrCreate()

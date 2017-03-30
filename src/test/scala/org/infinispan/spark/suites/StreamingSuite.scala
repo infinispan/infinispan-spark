@@ -1,12 +1,12 @@
 package org.infinispan.spark.suites
 
-import java.util.Properties
 import java.util.concurrent.TimeUnit
 
 import org.apache.spark.storage.StorageLevel
 import org.infinispan.client.hotrod.RemoteCache
 import org.infinispan.client.hotrod.event.ClientEvent
 import org.infinispan.client.hotrod.event.ClientEvent.Type.{CLIENT_CACHE_ENTRY_CREATED, CLIENT_CACHE_ENTRY_EXPIRED, CLIENT_CACHE_ENTRY_MODIFIED, CLIENT_CACHE_ENTRY_REMOVED}
+import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.domain.Runner
 import org.infinispan.spark.stream._
 import org.infinispan.spark.test.StreamingUtils.TestInputDStream
@@ -34,10 +34,9 @@ class StreamingSuite extends FunSuite with SparkStream with MultipleServers with
    ))
 
    private def getProperties = {
-      val props = new Properties()
-      props.put("infinispan.client.hotrod.server_list", s"localhost:$getServerPort")
-      props.put("infinispan.rdd.cacheName", getCacheName)
-      props
+      new ConnectorConfiguration()
+        .setServerList(s"localhost:$getServerPort")
+        .setCacheName(getCacheName)
    }
 
    test("test stream consumer") {

@@ -1,5 +1,14 @@
 package org.infinispan.spark.examples.twitter;
 
+import static org.infinispan.spark.examples.twitter.Sample.runAndExit;
+import static org.infinispan.spark.examples.twitter.Sample.usage;
+
+import java.util.Collections;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
@@ -11,24 +20,16 @@ import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.configuration.Configuration;
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
-import static org.infinispan.spark.examples.twitter.Sample.runAndExit;
-import static org.infinispan.spark.examples.twitter.Sample.usage;
+import org.infinispan.spark.config.ConnectorConfiguration;
 import org.infinispan.spark.examples.util.TwitterDStream;
 import org.infinispan.spark.stream.InfinispanJavaDStream;
-import scala.Tuple2;
 
-import java.util.Collections;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import scala.Tuple2;
 
 /**
  * This demo will start a DStream from Twitter and will save it to Infinispan after applying a transformation.
  * <p>
  * It will then print cache size and last tweet received at regular intervals.
- *
  * @author gustavonalle
  */
 public class StreamConsumerJava {
@@ -49,9 +50,8 @@ public class StreamConsumerJava {
       // Create the streaming context
       JavaStreamingContext javaStreamingContext = new JavaStreamingContext(conf, Seconds.apply(1));
 
-      // Populate infinispan properties
-      Properties infinispanProperties = new Properties();
-      infinispanProperties.put("infinispan.client.hotrod.server_list", infinispanHost);
+      // Create connector configuration
+      ConnectorConfiguration configuration = new ConnectorConfiguration().setServerList(infinispanHost);
 
       JavaReceiverInputDStream<Tweet> twitterDStream = TwitterDStream.create(javaStreamingContext);
 
@@ -59,7 +59,7 @@ public class StreamConsumerJava {
       JavaPairDStream<Long, Tweet> kvPair = twitterDStream.mapToPair(tweet -> new Tuple2<>(tweet.getId(), tweet));
 
       // Write the stream to infinispan
-      InfinispanJavaDStream.writeToInfinispan(kvPair, infinispanProperties);
+      InfinispanJavaDStream.writeToInfinispan(kvPair, configuration);
 
       // Print cache status every 5 seconds
       CacheStatus cacheStatus = new CacheStatus(infinispanHost);

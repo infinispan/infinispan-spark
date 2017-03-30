@@ -13,13 +13,14 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.infinispan.client.hotrod.event.ClientEvent;
 import static org.infinispan.spark.examples.twitter.Sample.runAndExit;
 import static org.infinispan.spark.examples.twitter.Sample.usage;
+
+import org.infinispan.spark.config.ConnectorConfiguration;
 import org.infinispan.spark.examples.util.TwitterDStream;
 import org.infinispan.spark.stream.InfinispanJavaDStream;
 import scala.Tuple2;
 import scala.Tuple3;
 
 import java.util.List;
-import java.util.Properties;
 
 /**
  * This demo will start a DStream from Twitter and will save it to Infinispan after applying a transformation. At the
@@ -45,9 +46,8 @@ public class StreamProducerJava {
       // Create the streaming context
       JavaStreamingContext javaStreamingContext = new JavaStreamingContext(conf, Seconds.apply(1));
 
-      // Populate infinispan properties
-      Properties infinispanProperties = new Properties();
-      infinispanProperties.put("infinispan.client.hotrod.server_list", infinispanHost);
+      // Create connector configuration
+      ConnectorConfiguration configuration = new ConnectorConfiguration().setServerList(infinispanHost);
 
       JavaReceiverInputDStream<Tweet> twitterDStream = TwitterDStream.create(javaStreamingContext);
 
@@ -55,11 +55,11 @@ public class StreamProducerJava {
       JavaPairDStream<Long, Tweet> kvPair = twitterDStream.mapToPair(tweet -> new Tuple2<>(tweet.getId(), tweet));
 
       // Write the stream to infinispan
-      InfinispanJavaDStream.writeToInfinispan(kvPair, infinispanProperties);
+      InfinispanJavaDStream.writeToInfinispan(kvPair, configuration);
 
       // Create InfinispanInputDStream
       JavaInputDStream<Tuple3<Long, Tweet, ClientEvent.Type>> infinispanInputDStream =
-              InfinispanJavaDStream.createInfinispanInputDStream(javaStreamingContext, MEMORY_ONLY(), infinispanProperties);
+              InfinispanJavaDStream.createInfinispanInputDStream(javaStreamingContext, MEMORY_ONLY(), configuration);
 
       // Apply a transformation to the RDDs to aggregate by country
       JavaPairDStream<String, Integer> countryDStream = infinispanInputDStream.transformToPair(rdd -> {

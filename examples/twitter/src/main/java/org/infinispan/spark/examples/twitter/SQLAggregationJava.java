@@ -1,26 +1,24 @@
 package org.infinispan.spark.examples.twitter;
 
+import static org.infinispan.spark.examples.twitter.Sample.usage;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.ForeachFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
-import static org.infinispan.spark.examples.twitter.Sample.usage;
+import org.infinispan.spark.config.ConnectorConfiguration;
 import org.infinispan.spark.rdd.InfinispanJavaRDD;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Properties;
 
 /**
  * This demo will group tweets by country and print the top 20 countries, using Spark SQL support.
- *
  * @author gustavonalle
  */
 public class SQLAggregationJava {
@@ -36,15 +34,14 @@ public class SQLAggregationJava {
 
       SparkConf conf = Sample.getSparkConf("spark-infinispan-sql-aggregation-java");
 
+      // Create connector properties
+      ConnectorConfiguration configuration = new ConnectorConfiguration().setServerList(infinispanHost);
+
       // Create java spark context
       JavaSparkContext javaSparkContext = new JavaSparkContext(conf);
 
-      // Populate infinispan properties
-      Properties infinispanProperties = new Properties();
-      infinispanProperties.put("infinispan.client.hotrod.server_list", infinispanHost);
-
       // Create RDD from infinispan data
-      JavaPairRDD<Long, Tweet> infinispanRDD = InfinispanJavaRDD.createInfinispanRDD(javaSparkContext, infinispanProperties);
+      JavaPairRDD<Long, Tweet> infinispanRDD = InfinispanJavaRDD.createInfinispanRDD(javaSparkContext, configuration);
 
       // Obtain the values only
       JavaRDD<Tweet> tweetsRDD = infinispanRDD.values();

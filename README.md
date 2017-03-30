@@ -11,6 +11,7 @@
 * Create a DStream for events (insert, modify and delete) in a cache
 * Spark serialiser based on JBoss Marshalling
 * Scala 2.10.x and 2.11.x binaries
+* Dataset API with push down predicates support
 * Java API
 
 
@@ -50,20 +51,33 @@ Scala 2.10
 </dependency>
 ```
 
-#### Supported Configurations:
+#### Configuration
 
-Name          | Description | Default
+The connector is configured using the ```org.infinispan.spark.config.ConnectorConfiguration``` class, the following methods are provided:
+
+Method          | Description | Default
 ------------- | -------------|----------
-infinispan.client.hotrod.server_list | List of servers | localhost:11222 | 
-infinispan.rdd.cacheName  | The name of the cache that will back the RDD | default cache | 
-infinispan.rdd.read_batch_size  | Batch size (number of entries) when reading from the cache | 10000 | 
-infinispan.rdd.write_batch_size| Batch size (number of entries) when writing to the cache | 500
-infinispan.rdd.number_server_partitions | Number of partitions created per Infinispan server | 2
-infinispan.rdd.query.proto.protofiles | Map\<String, String\> with protobuf file names and contents | Can be omitted if entities are [annotated](https://github.com/infinispan/infinispan/blob/master/client/hotrod-client/src/test/java/org/infinispan/client/hotrod/marshall/ProtoStreamMarshallerWithAnnotationsTest.java#L39) with protobuf encoding information. Protobuf encoding is required to filter the RDD by Query
-infinispan.rdd.query.proto.marshallers | List of protostream marshallers classes for the objects in the cache | Can be ommited if entities are [annotated](https://github.com/infinispan/infinispan/blob/master/client/hotrod-client/src/test/java/org/infinispan/client/hotrod/marshall/ProtoStreamMarshallerWithAnnotationsTest.java#L39) with protobuf encoding information. Protobuf encoding is required to filter the RDD by Query
-infinispan.rdd.query.proto.protoclasses | Collection\<Class\> containing protobuf annotations such as @ProtoMessage and @ProtoField | Alternative to using ```infinispan.rdd.query.proto.protofiles``` and ```infinispan.rdd.query.proto.marshallers``` configurations, since both will be auto-generated based on the annotations.
-infinispan.rdd.query.proto.autoregister | If ```true``` will automatically register protobuf schemas in the server. The schema can either be provided by ```infinispan.rdd.query.proto.protofiles``` or inferred from the annotations present on ```infinispan.rdd.query.proto.protoclasses``` | false
-infinispan.client.hotrod.use_ssl | Enable SSL | false
+setServerList(String) | List of servers | localhost:11222 | 
+setCacheName(String) | The name of the Infinispan cache to be used in the computations | default cache | 
+setReadBatchSize(Integer)  | Batch size (number of entries) when reading from the cache | 10000 | 
+setWriteBatchSize(Integer) | Batch size (number of entries) when writing to the cache | 500
+setPartitions(Integer) | Number of partitions created per Infinispan server when processing data | 2
+addProtoFile(String name, String contents) | Register a protobuf file describing one or more entities in the cache | Can be omitted if entities are [annotated](https://github.com/infinispan/infinispan/blob/master/client/hotrod-client/src/test/java/org/infinispan/client/hotrod/marshall/ProtoStreamMarshallerWithAnnotationsTest.java#L39) with protobuf encoding information. Protobuf encoding is required to filter the RDD by Query or to use the Dataset API
+addMessageMarshaller(Class) | Registers a [Message Marshaller](http://infinispan.org/docs/dev/user_guide/user_guide.html#storing_protobuf_encoded_entities) for an entity in the cache | Can be omitted if entities are [annotated](https://github.com/infinispan/infinispan/blob/master/client/hotrod-client/src/test/java/org/infinispan/client/hotrod/marshall/ProtoStreamMarshallerWithAnnotationsTest.java#L39) with protobuf encoding information. Protobuf encoding is required to filter the RDD by Query or to use the Dataset API
+addProtoAnnotatedClass(Class) | Registers a Class containing protobuf annotations such as @ProtoMessage and @ProtoField | Alternative to using ```addProtoFile``` and ```addMessageMarshaller``` methods, since both will be auto-generated based on the annotations.
+setAutoRegisterProto() | Will cause automatically registration of protobuf schemas in the server. The schema can either be provided by ```addProtoFile()``` or inferred from the annotated classes registered with ```addProtoAnnotatedClass``` | no automatic registration is done
+addHotRodClientProperty(key, value) | Used to configured extra Hot Rod client properties when contacting the Infinispan Server | |
+setTargetEntity(Class) | Used in conjunction with the Dataset API to specify the Query target | If omitted, and in case there is only one class annotated with protobuf configured, it will choose that class
+
+##### Connecting to secure servers
+
+
+The following properties can be used via ```ConnectorConfiguration.addHotRodClientProperty(prop, value)``` in order to connect to Infinispan server with security enabled:
+
+
+Property          | Description 
+------------- | -------------
+infinispan.client.hotrod.use_ssl | Enable SSL 
 infinispan.client.hotrod.key_store_file_name | The JKS keystore file name, required when mutual SSL authentication is enabled in the Infinispan server. Can be either the file path or a class path resource. Examples: "/usr/local/keystore.jks", "classpath:/keystore.jks" | 
 infinispan.client.hotrod.trust_store_file_name | The JKS keystore path or classpath containing server certificates | 
 infinispan.client.hotrod.key_store_password | Password for the key store | 
@@ -75,19 +89,19 @@ infinispan.client.hotrod.trust_store_password | Password for the trust store |
 ##### Creating an RDD
 
 ```scala
-import java.util.Properties
+import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.rdd._
 
-val config = new Properties
-config.put("infinispan.rdd.cacheName","my-cache")
-config.put("infinispan.client.hotrod.server_list","10.9.0.8:11222")
-val infinispanRDD = new InfinispanRDD[String, MyEntity](sc, configuration = config)
+val sc: SparkContext =  ...
+
+val config = new ConnectorConfiguration().setCacheName("my-cache").setServerList("10.9.0.8:11222")
+
+val infinispanRDD = new InfinispanRDD[String, MyEntity](sc, config)
 ```
 
 ##### Creating an RDD Using a custom Splitter
 
 ```scala
-import java.util.Properties
 import org.infinispan.spark.rdd._
 
 val config =  ...
@@ -102,15 +116,15 @@ val infinispanRDD = new InfinispanRDD[String, MyEntity](sc, config, mySplitter)
 import org.infinispan.spark.stream._
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.storage.StorageLevel
-import java.util.Properties
+import org.infinispan.spark.config.ConnectorConfiguration
 
 val sc = ... // Spark context
-val props = ... // java.util.Properties with Infinispan RDD configuration
+val config = ... // ConnectorConfiguration with Infinispan RDD configuration
 val ssc = new StreamingContext(sc, Seconds(1))
-val stream = new InfinispanInputDStream[String, MyEntity](ssc, StorageLevel.MEMORY_ONLY, props)
+val stream = new InfinispanInputDStream[String, MyEntity](ssc, StorageLevel.MEMORY_ONLY, config)
 ```      
 
-##### Filtering by pre-built Query object
+##### Filtering by a pre-built Query object
 
 ```scala
 import org.infinispan.client.hotrod.{RemoteCacheManager, Search, RemoteCache}
@@ -120,7 +134,7 @@ val rdd: InfinispanRDD = ...
 val cache: RemoteCache = ...
 
 // Assuming MyEntity is already stored in the cache with protobuf encoding, and has protobuf annotations.
-val query = Search.getQueryFactory(cache).from(classOf[MyEntity]).having("field").equal("some value").toBuilder[RemoteQuery].build
+val query = Search.getQueryFactory(cache).from(classOf[MyEntity]).having("field").equal("some value").build()
 
 val filteredRDD = rdd.filterByQuery(query)
 ```
@@ -147,14 +161,68 @@ val filteredRDD = rdd.filterByCustom[Double]("my-filter-factory", "param1", "par
 ##### Write arbitrary key/value RDDs to Infinispan
 
 ```scala
-import java.util.Properties
+import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark._
 
-val config = ...
+val config: ConnectorConfiguration = ...
 val sc: SparkContext = ...
 
 val simpleRdd = sc.parallelize((1 to 1000)).zipWithIndex()
 simpleRdd.writeToInfinispan(config) 
+```
+
+
+##### Using the DatasetAPI with support to push down predicates
+
+```scala
+
+import org.infinispan.protostream.annotations.{ProtoField, ProtoMessage}
+import scala.annotation.meta.beanGetter
+import scala.beans.BeanProperty
+
+/**
+* Entities can be annotated in order to automatically generate protobuf schemas.
+* Also, they should be valid java beans. From Scala this can be achieved as:
+*/
+@ProtoMessage(name = "user")
+class User(@(ProtoField@beanGetter)(number = 1, required = true) @BeanProperty var name: String,
+           @(ProtoField@beanGetter)(number = 2, required = true) @BeanProperty var age: Int) {
+
+   def this() = {
+      this(name = "", age = -1)
+   }
+}
+
+```
+
+```scala
+import org.infinispan.spark.config.ConnectorConfiguration
+import org.apache.spark._
+import org.apache.spark.sql._
+
+// Configure the connector using the ConnectorConfiguration: register entities annotated with Protobuf, 
+// and turn on automatic registration of schemas
+val infinispanConfig: ConnectorConfiguration = new ConnectorConfiguration()
+         .setServerList("server1:11222,server2:11222")
+         .addProtoAnnotatedClass(classOf[User])
+         .setAutoRegisterProto()
+
+// Create the SparkSession
+val sparkSession = SparkSession.builder().config(new SparkConf().setMaster("masterHost")).getOrCreate()
+
+// Load the "infinispan" datasource into a DataFame, using the infinispan config 
+val df: DataFrame = sparkSession.read.format("infinispan").options(infinispanConfig.toStringsMap).load()
+
+// From here it's possible to query using the Dataset API...
+val rows: Array[Row] = df.filter(df("age").gt(30)).filter(df("age").lt(40)).collect()
+
+// ... or execute SQL queries
+df.createOrReplaceTempView("user")
+
+val query = "SELECT first(r.name) as name, first(r.age) as age FROM user u GROUP BY r.age"
+
+val rowsFromSQL: Array[Row] = sparkSession.sql(query).collect()
+
 ```
 
 #### Build instructions

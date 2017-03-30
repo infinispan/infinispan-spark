@@ -1,6 +1,5 @@
 package org.infinispan.spark.examples.twitter
 
-import java.util.Properties
 import java.util.concurrent.{Executors, TimeUnit}
 
 import org.apache.log4j.{Level, Logger}
@@ -8,6 +7,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.infinispan.client.hotrod.RemoteCacheManager
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
+import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.examples.twitter.Sample.{getSparkConf, runAndExit, usageStream}
 import org.infinispan.spark.examples.util.TwitterDStream
 import org.infinispan.spark.stream._
@@ -37,16 +37,16 @@ object StreamConsumerScala {
 
       val streamingContext = new StreamingContext(sparkContext, Seconds(1))
 
-      val infinispanProperties = new Properties
-      infinispanProperties.put("infinispan.client.hotrod.server_list", infinispanHost)
-      val remoteCacheManager = new RemoteCacheManager(new ConfigurationBuilder().withProperties(infinispanProperties).build())
+      val config = new ConnectorConfiguration()
+        .setServerList(infinispanHost)
+      val remoteCacheManager = new RemoteCacheManager(new ConfigurationBuilder().withProperties(config.getHotRodClientProperties).build())
       val cache = remoteCacheManager.getCache[Long, Tweet]
 
       val twitterDStream = TwitterDStream.create(streamingContext)
 
       val keyValueTweetStream = twitterDStream.map(s => (s.getId, s))
 
-      keyValueTweetStream.writeToInfinispan(infinispanProperties)
+      keyValueTweetStream.writeToInfinispan(config)
 
       Repeat.every(5 seconds, {
          val keySet = cache.keySet()

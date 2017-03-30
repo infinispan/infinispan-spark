@@ -1,11 +1,11 @@
 package org.infinispan.spark.suites
 
 import java.net.{InetSocketAddress, SocketAddress}
-import java.util.Properties
 
 import org.apache.spark.Partition
 import org.infinispan.client.hotrod.CacheTopologyInfo
-import org.infinispan.spark.rdd.{InfinispanPartition, InfinispanRDD, PerServerSplitter}
+import org.infinispan.spark.config.ConnectorConfiguration
+import org.infinispan.spark.rdd.{InfinispanPartition, PerServerSplitter}
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.JavaConversions._
@@ -50,8 +50,8 @@ class PartitionSuite extends FunSuite with Matchers {
    private def makeServer(host: String, port: Int): SocketAddress = InetSocketAddress.createUnresolved(host, port)
 
    private def split(topologyInfo: CacheTopologyInfo, partitionPerServer: Integer) = {
-      val props = new Properties()
-      props.put(InfinispanRDD.PartitionsPerServer, partitionPerServer)
+      val props = new ConnectorConfiguration()
+      props.setPartitions(partitionPerServer)
       splitter.split(topologyInfo, props)
    }
 
@@ -67,7 +67,7 @@ class PartitionSuite extends FunSuite with Matchers {
    }
 
    def assertNoDuplicateSegments(partitions: Array[Partition], numSegments: Int) = {
-      partitions.flatMap(_.segments).size shouldBe numSegments
+      partitions.flatMap(_.segments).length shouldBe numSegments
    }
 
    def assertLocations(partitions: Array[Partition], numServers: Int, partitionsPerServer: Int) = {

@@ -1,5 +1,14 @@
 package org.infinispan.spark;
 
+import static org.infinispan.spark.test.StreamingUtils.createJavaReceiverDInputStream;
+import static org.junit.Assert.assertEquals;
+
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.spark.storage.StorageLevel;
 import org.apache.spark.streaming.api.java.JavaInputDStream;
 import org.apache.spark.streaming.api.java.JavaReceiverInputDStream;
@@ -15,32 +24,25 @@ import org.apache.spark.streaming.scheduler.StreamingListenerReceiverStarted;
 import org.apache.spark.streaming.scheduler.StreamingListenerReceiverStopped;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.event.ClientEvent;
+import org.infinispan.spark.config.ConnectorConfiguration;
 import org.infinispan.spark.domain.Person;
 import org.infinispan.spark.stream.InfinispanJavaDStream;
-import static org.infinispan.spark.test.StreamingUtils.createJavaReceiverDInputStream;
 import org.infinispan.spark.test.TestingUtil;
-import static org.junit.Assert.assertEquals;
+
 import scala.Tuple2;
 import scala.Tuple3;
 
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-
 public class JavaStreamApiTest {
 
-   public void testStreamConsumer(JavaStreamingContext jssc, Properties config, RemoteCache<Integer, Person> cache) throws InterruptedException {
+   public void testStreamConsumer(JavaStreamingContext jssc, ConnectorConfiguration config, RemoteCache<Integer, Person> cache) throws InterruptedException {
       List<Tuple2<Integer, Person>> data = Arrays.asList(
-              new Tuple2<>(1, createPerson(1)),
-              new Tuple2<>(2, createPerson(2)),
-              new Tuple2<>(3, createPerson(3))
+            new Tuple2<>(1, createPerson(1)),
+            new Tuple2<>(2, createPerson(2)),
+            new Tuple2<>(3, createPerson(3))
       );
 
       JavaReceiverInputDStream<Tuple2<Integer, Person>> dstream =
-              createJavaReceiverDInputStream(jssc, data, Duration.ofMillis(100));
+            createJavaReceiverDInputStream(jssc, data, Duration.ofMillis(100));
 
       InfinispanJavaDStream.writeToInfinispan(dstream, config);
 
@@ -53,9 +55,9 @@ public class JavaStreamApiTest {
       assertEquals("name3", cache.get(3).getName());
    }
 
-   public void testStreamProducer(JavaStreamingContext jssc, Properties config, RemoteCache<Integer, Person> cache) {
+   public void testStreamProducer(JavaStreamingContext jssc, ConnectorConfiguration config, RemoteCache<Integer, Person> cache) {
       JavaInputDStream<Tuple3<Integer, Person, ClientEvent.Type>> inputDStream =
-              InfinispanJavaDStream.<Integer, Person>createInfinispanInputDStream(jssc, StorageLevel.MEMORY_ONLY(), config);
+            InfinispanJavaDStream.createInfinispanInputDStream(jssc, StorageLevel.MEMORY_ONLY(), config);
 
       Set<Tuple3<Integer, Person, ClientEvent.Type>> streamDump = new HashSet<>();
 

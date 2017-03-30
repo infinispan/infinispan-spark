@@ -2,13 +2,12 @@ package org.infinispan.spark.rdd
 
 import java.net.SocketAddress
 import java.util
-import java.util.Properties
 
 import org.apache.spark.Partition
 import org.infinispan.client.hotrod.CacheTopologyInfo
-import org.infinispan.spark._
-import scala.collection.JavaConversions._
+import org.infinispan.spark.config.ConnectorConfiguration
 
+import scala.collection.JavaConversions._
 import scala.collection.mutable
 
 
@@ -25,10 +24,10 @@ trait Splitter {
      * Creates partitions based on a certain cluster topology.
      *
      * @param cacheTopology [[CacheTopologyInfo]] holding information of servers and segments ownership.
-     * @param properties [[Properties]] used to configure the RDD
+     * @param properties    [[org.infinispan.spark.config.ConnectorConfiguration]] used to configure the RDD
      * @return an array of [[InfinispanPartition]]
      */
-   def split(cacheTopology: CacheTopologyInfo, properties: Properties): Array[Partition]
+   def split(cacheTopology: CacheTopologyInfo, properties: ConnectorConfiguration): Array[Partition]
 }
 
 /**
@@ -38,7 +37,7 @@ trait Splitter {
   */
 class PerServerSplitter extends Splitter {
 
-   override def split(cacheTopology: CacheTopologyInfo, properties: Properties) = {
+   override def split(cacheTopology: CacheTopologyInfo, properties: ConnectorConfiguration) = {
       val segmentsByServer = cacheTopology.getSegmentsPerServer
       if (segmentsByServer.isEmpty) throw new IllegalArgumentException("No servers found to partition")
       if (segmentsByServer.keySet().size == 1 && segmentsByServer.values.flatten.isEmpty) {
@@ -66,12 +65,13 @@ class PerServerSplitter extends Splitter {
             }
          }
 
-         val pps = properties.readWithDefault[Int](InfinispanRDD.PartitionsPerServer)(default = InfinispanRDD.DefaultPartitionsPerServer)
+         val pps = properties.getServerPartitions
          result.toStream.flatMap { case (a, b) => cut(b.toSeq, pps).map((a, _)) }.zipWithIndex.map { case ((server, segs), idx) =>
             new InfinispanPartition(idx, Location(server), toJavaSet(segs), properties)
          }.toArray
       }
    }
+
    private def toJavaSet(s: Set[Integer]) = new util.HashSet[Integer](s)
 
    private def cut[A](l: Seq[A], parts: Int) = (0 until parts).map { i => l.drop(i).sliding(1, parts).flatten.toSet }.filter(_.nonEmpty)
