@@ -13,15 +13,7 @@ import org.apache.spark.storage.StorageLevel;
 import org.apache.spark.streaming.api.java.JavaInputDStream;
 import org.apache.spark.streaming.api.java.JavaReceiverInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
-import org.apache.spark.streaming.scheduler.StreamingListener;
-import org.apache.spark.streaming.scheduler.StreamingListenerBatchCompleted;
-import org.apache.spark.streaming.scheduler.StreamingListenerBatchStarted;
-import org.apache.spark.streaming.scheduler.StreamingListenerBatchSubmitted;
-import org.apache.spark.streaming.scheduler.StreamingListenerOutputOperationCompleted;
-import org.apache.spark.streaming.scheduler.StreamingListenerOutputOperationStarted;
-import org.apache.spark.streaming.scheduler.StreamingListenerReceiverError;
-import org.apache.spark.streaming.scheduler.StreamingListenerReceiverStarted;
-import org.apache.spark.streaming.scheduler.StreamingListenerReceiverStopped;
+import org.apache.spark.streaming.scheduler.*;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.event.ClientEvent;
 import org.infinispan.spark.config.ConnectorConfiguration;
@@ -84,6 +76,10 @@ public class JavaStreamApiTest {
    }
 
    private class ReceiverStartListener implements StreamingListener {
+      @Override
+      public void onStreamingStarted(StreamingListenerStreamingStarted streamingStarted) {
+      }
+
       @Override
       public void onReceiverStarted(StreamingListenerReceiverStarted receiverStarted) {
       }
