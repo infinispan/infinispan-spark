@@ -414,12 +414,9 @@ object SingleStandardNode extends SingleNode {
 
 object SingleSecureNode extends SingleNode {
 
-   override def getConfigFile = "standalone-hotrod-ssl.xml"
+   override def getConfigFile = "../../docs/examples/configs/standalone-hotrod-ssl.xml"
 
-   // Until https://issues.jboss.org/browse/ISPN-7393 is solved
-   val configFile = toPath("/standalone-hotrod-ssl.xml")
-
-   val extraFiles: Seq[java.nio.file.Path] = Seq(toPath("/keystore_server.jks"),toPath("/truststore_server.jks"), configFile)
+   val extraFiles: Seq[java.nio.file.Path] = Seq(toPath("/keystore_server.jks"),toPath("/ca.jks"))
 
    def toPath(classPath: String): java.nio.file.Path = Paths.get(getClass.getResource(classPath).getPath)
 
