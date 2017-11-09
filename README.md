@@ -24,6 +24,7 @@
 | 0.3  | 8.2.x 9.x | 1.6.x | 2.10.x / 2.11.x | 8  |
 | 0.4  | 8.2.x 9.x | 2.0.0 | 2.10.x / 2.11.x | 8  |
 | 0.5  | 8.2.x 9.x | 2.1.0 | 2.11.x | 8  |
+| 0.6-SNAPSHOT  | 8.2.x 9.x | 2.2.0 | 2.11.x | 8  |
 
 
 #### Dependency:
@@ -80,10 +81,11 @@ infinispan.client.hotrod.trust_store_password | Password for the trust store |
 ##### Creating an RDD
 
 ```scala
+import org.apache.spark.SparkContext
 import org.infinispan.spark.config.ConnectorConfiguration
-import org.infinispan.spark.rdd._
+import org.infinispan.spark.rdd.InfinispanRDD
 
-val sc: SparkContext =  ...
+val sc: SparkContext = ...
 
 val config = new ConnectorConfiguration().setCacheName("my-cache").setServerList("10.9.0.8:11222")
 
@@ -93,10 +95,14 @@ val infinispanRDD = new InfinispanRDD[String, MyEntity](sc, config)
 ##### Creating an RDD Using a custom Splitter
 
 ```scala
+import org.apache.spark.SparkContext
+import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.rdd._
 
-val config =  ...
-val mySplitter = new CustomSplitter(...)
+val sc: SparkContext = ...
+
+val config: ConnectorConfiguration = ...
+val mySplitter = CustomSplitter()
 val infinispanRDD = new InfinispanRDD[String, MyEntity](sc, config, mySplitter)
 ```
 
@@ -104,13 +110,14 @@ val infinispanRDD = new InfinispanRDD[String, MyEntity](sc, config, mySplitter)
 ##### Creating a DStream
 
 ```scala
-import org.infinispan.spark.stream._
-import org.apache.spark.streaming.{Seconds, StreamingContext}
+import org.apache.spark.SparkContext
 import org.apache.spark.storage.StorageLevel
+import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.infinispan.spark.config.ConnectorConfiguration
+import org.infinispan.spark.stream._
 
-val sc = ... // Spark context
-val config = ... // ConnectorConfiguration with Infinispan RDD configuration
+val sc: SparkContext = ...
+val config: ConnectorConfiguration = ...
 val ssc = new StreamingContext(sc, Seconds(1))
 val stream = new InfinispanInputDStream[String, MyEntity](ssc, StorageLevel.MEMORY_ONLY, config)
 ```      
@@ -118,11 +125,11 @@ val stream = new InfinispanInputDStream[String, MyEntity](ssc, StorageLevel.MEMO
 ##### Filtering by a pre-built Query object
 
 ```scala
-import org.infinispan.client.hotrod.{RemoteCacheManager, Search, RemoteCache}
+import org.infinispan.client.hotrod.{RemoteCache, Search}
 import org.infinispan.spark.rdd.InfinispanRDD
 
-val rdd: InfinispanRDD = ... 
-val cache: RemoteCache = ...
+val rdd: InfinispanRDD[String, MyEntity] = ...
+val cache: RemoteCache[String, MyEntity] = ...
 
 // Assuming MyEntity is already stored in the cache with protobuf encoding, and has protobuf annotations.
 val query = Search.getQueryFactory(cache).from(classOf[MyEntity]).having("field").equal("some value").build()
@@ -133,10 +140,9 @@ val filteredRDD = rdd.filterByQuery(query)
 ##### Filtering using Ickle Queries
 
 ```scala
-import org.infinispan.client.hotrod.{RemoteCacheManager, Search, RemoteCache}
 import org.infinispan.spark.rdd.InfinispanRDD
 
-val rdd: InfinispanRDD = ...
+val rdd: InfinispanRDD[String, MyEntity] = ...
 
 val filteredRDD = rdd.filterByQuery("FROM MyEntity e where e.field BETWEEN 10 AND 20")
 ```
@@ -144,76 +150,100 @@ val filteredRDD = rdd.filterByQuery("FROM MyEntity e where e.field BETWEEN 10 AN
 ##### Filtering by deployed filter in the Infinispan server
 
 ```scala
-val rdd = InfinispanRDD[String,MyEntity] = .... 
+import org.infinispan.spark.rdd.InfinispanRDD
+
+val rdd: InfinispanRDD[String, MyEntity] = ...
 // "my-filter-factory" filter and converts MyEntity to a Double, and has two parameters
 val filteredRDD = rdd.filterByCustom[Double]("my-filter-factory", "param1", "param2")
+
 ```
 
 ##### Write arbitrary key/value RDDs to Infinispan
 
 ```scala
-import org.infinispan.spark.config.ConnectorConfiguration
+import org.apache.spark.SparkContext
 import org.infinispan.spark._
+import org.infinispan.spark.config.ConnectorConfiguration
 
 val config: ConnectorConfiguration = ...
 val sc: SparkContext = ...
 
-val simpleRdd = sc.parallelize((1 to 1000)).zipWithIndex()
-simpleRdd.writeToInfinispan(config) 
+val simpleRdd = sc.parallelize(1 to 1000).zipWithIndex()
+simpleRdd.writeToInfinispan(config)
 ```
 
+##### Using SparkSQL
+
+```scala
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import org.apache.spark.{SparkConf, SparkContext}
+import org.infinispan.spark.config.ConnectorConfiguration
+import org.infinispan.spark.rdd._
+
+val sc: SparkContext = ...
+
+val config = new ConnectorConfiguration().setServerList("myserver1:port,myserver2:port")
+
+// Obtain the values from an InfinispanRDD
+val infinispanRDD = new InfinispanRDD[Long, MyEntity](sc, config)
+val valuesRDD = infinispanRDD.values
+
+// Create a DataFrame from a SparkSession
+val sparkSession = SparkSession.builder().config(new SparkConf().setMaster("masterHost")).getOrCreate()
+val dataFrame: Dataset[Row] = sparkSession.createDataFrame(valuesRDD, classOf[MyEntity])
+
+// Create a view
+dataFrame.createOrReplaceTempView("myEntities")
+
+// Create and run the Query, collect and print results
+sparkSession.sql("SELECT field1, count(*) as c from myEntities WHERE field1 != 'N/A' GROUP BY field1 ORDER BY c desc")
+      .collect().take(20).foreach(println)
+```
 
 ##### Using the DatasetAPI with support to push down predicates
 
 ```scala
 
+import org.apache.spark._
+import org.apache.spark.sql._
 import org.infinispan.protostream.annotations.{ProtoField, ProtoMessage}
+import org.infinispan.spark.config.ConnectorConfiguration
+
 import scala.annotation.meta.beanGetter
 import scala.beans.BeanProperty
 
 /**
-* Entities can be annotated in order to automatically generate protobuf schemas.
-* Also, they should be valid java beans. From Scala this can be achieved as:
-*/
+  * Entities can be annotated in order to automatically generate protobuf schemas.
+  * Also, they should be valid java beans. From Scala this can be achieved as:
+  */
 @ProtoMessage(name = "user")
 class User(@(ProtoField@beanGetter)(number = 1, required = true) @BeanProperty var name: String,
            @(ProtoField@beanGetter)(number = 2, required = true) @BeanProperty var age: Int) {
-
    def this() = {
-      this(name = "", age = -1)
+        this(name = "", age = -1)
    }
 }
 
-```
-
-```scala
-import org.infinispan.spark.config.ConnectorConfiguration
-import org.apache.spark._
-import org.apache.spark.sql._
-
-// Configure the connector using the ConnectorConfiguration: register entities annotated with Protobuf, 
+// Configure the connector using the ConnectorConfiguration: register entities annotated with Protobuf,
 // and turn on automatic registration of schemas
 val infinispanConfig: ConnectorConfiguration = new ConnectorConfiguration()
-         .setServerList("server1:11222,server2:11222")
-         .addProtoAnnotatedClass(classOf[User])
-         .setAutoRegisterProto()
+      .setServerList("server1:11222,server2:11222")
+      .addProtoAnnotatedClass(classOf[User])
+      .setAutoRegisterProto()
 
 // Create the SparkSession
 val sparkSession = SparkSession.builder().config(new SparkConf().setMaster("masterHost")).getOrCreate()
 
-// Load the "infinispan" datasource into a DataFame, using the infinispan config 
-val df: DataFrame = sparkSession.read.format("infinispan").options(infinispanConfig.toStringsMap).load()
+// Load the "infinispan" datasource into a DataFame, using the infinispan config
+val df: Dataset[Row] = sparkSession.read.format("infinispan").options(infinispanConfig.toStringsMap).load()
 
 // From here it's possible to query using the Dataset API...
 val rows: Array[Row] = df.filter(df("age").gt(30)).filter(df("age").lt(40)).collect()
 
 // ... or execute SQL queries
 df.createOrReplaceTempView("user")
-
 val query = "SELECT first(r.name) as name, first(r.age) as age FROM user u GROUP BY r.age"
-
 val rowsFromSQL: Array[Row] = sparkSession.sql(query).collect()
-
 ```
 
 #### Build instructions
@@ -239,8 +269,3 @@ export NEXUS_PASS=...
 #### Releasing
 
 ``` ./sbt release ```
-
-
-
-
-
