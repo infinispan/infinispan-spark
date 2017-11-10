@@ -48,6 +48,7 @@ object ProjectBuild extends Build {
          .dependsOn(core)
          .settings(commonSettings: _ *)
          .settings(
+             scalacOptions --= Seq("-Ywarn-dead-code","-Ywarn-unused"),
              publishLocal := {},
              publish := {}
           )
