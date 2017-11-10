@@ -27,4 +27,12 @@ class JavaProtobufSuite extends FunSuite with RunnersCache with JavaSpark with S
       javaTest.testSQL()
    }
 
+   test("Filter by query object") {
+      javaTest.testFilterByQueryObject()
+   }
+
+   test("Filter by query string") {
+      javaTest.testFilterByQueryString()
+   }
+
 }

@@ -1,18 +1,21 @@
 package org.infinispan.spark;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.util.List;
-
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.infinispan.client.hotrod.RemoteCache;
+import org.infinispan.client.hotrod.Search;
+import org.infinispan.query.dsl.Query;
 import org.infinispan.spark.config.ConnectorConfiguration;
 import org.infinispan.spark.domain.Runner;
 import org.infinispan.spark.rdd.InfinispanJavaRDD;
+
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author gustavonalle
@@ -59,6 +62,19 @@ public class JavaProtobufTest {
 
          assertTrue(winnerTime == fastestOfAge.getFinishTimeSeconds());
       });
+   }
+
+   public void testFilterByQueryObject() throws Exception {
+      Query remoteQuery = Search.getQueryFactory(cache).from(Runner.class).having("age").gt(30).build();
+      JavaPairRDD<Integer, Runner> filteredRDD = infinispanRDD.filterByQuery(remoteQuery);
+
+      assertTrue(filteredRDD.values().collect().stream().allMatch(p -> p.getAge() > 30));
+   }
+
+   public void testFilterByQueryString() throws Exception {
+      JavaPairRDD<Integer, Runner> filteredRDD = infinispanRDD.filterByQuery("FROM runner r where r.age > 30");
+
+      assertTrue(filteredRDD.values().collect().stream().allMatch(p -> p.getAge() > 30));
    }
 
 }
