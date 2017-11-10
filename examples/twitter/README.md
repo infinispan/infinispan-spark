@@ -9,13 +9,7 @@ and Streaming.
 
 Make sure project is built to generate the job fat jar. From the project root, type:
 
-```./sbt +examples/assembly```
-
-#### MacOS X docker users
-
-Create the following route in order to make the containers acessible via their IPs:
-
-``` sudo route -n add 172.17.0.0/16 `docker-machine ip default` ```
+```./sbt examplesTwitter/assembly```
 
 #### Launch a cluster
 
@@ -116,7 +110,7 @@ Sample output:
 
 ### 5. Changing code
 
-Source code for the samples can be changed without a docker container restart, but a ```./sbt +examples/assembly``` is needed.
+Source code for the samples can be changed without a docker container restart, but a ```./sbt examplesTwitter/assembly``` is needed.
 
 ### 6. Stop containers
 

@@ -8,7 +8,7 @@ sparkMaster:
   image: gustavonalle/spark:$SPARK_VERSION
   container_name: sparkMaster
   volumes:
-    - $PWD/target:/usr/local/code
+    - $PWD/target:/usr/local/code:z
 sparkSlave:
   image: gustavonalle/spark:$SPARK_VERSION
   container_name: sparkSlave

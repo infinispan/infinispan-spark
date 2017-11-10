@@ -10,8 +10,8 @@ function wait_for_ispn() {
 }
 command -v docker-compose >/dev/null 2>&1 || { echo >&2 "docker-compose not installed.  Aborting."; exit 1; }
 
-DEFAULT_INFINISPAN_VERSION=$(cd ../../ && sbt --error  'set showSuccess := false' getInfinispanVersion)
-DEFAULT_SPARK_VERSION=$(cd ../../ && sbt --error  'set showSuccess := false' getSparkVersion)
+DEFAULT_INFINISPAN_VERSION=$(cd ../../ && ./sbt --error  'set showSuccess := false' getInfinispanVersion)
+DEFAULT_SPARK_VERSION=$(cd ../../ && ./sbt --error  'set showSuccess := false' getSparkVersion)
 
 usage() {
 
