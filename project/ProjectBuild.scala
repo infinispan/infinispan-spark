@@ -40,9 +40,19 @@ object ProjectBuild extends Build {
             resourceGenerators in Test <+= extractServer,
             publishArtifact in Test := true,
             mappings in(Test, packageBin) ~= (_.filter(!_._1.getPath.contains("infinispan-server")))
-         ).disablePlugins(sbtassembly.AssemblyPlugin, plugins.JUnitXmlReportPlugin).aggregate(examplesRef)
+         ).disablePlugins(sbtassembly.AssemblyPlugin, plugins.JUnitXmlReportPlugin).aggregate(LocalProject("examplesTwitter"), LocalProject("examplesSnippets"))
 
-   lazy val examples = (project in file("examples/twitter"))
+   lazy val examplesRoot = project in file("examples")
+
+   lazy val examplesSnippets = (project in file("examples/snippets"))
+         .dependsOn(core)
+         .settings(commonSettings: _ *)
+         .settings(
+             publishLocal := {},
+             publish := {}
+          )
+
+    lazy val examplesTwitter = (project in file("examples/twitter"))
          .dependsOn(core)
          .settings(commonSettings: _ *)
          .settings(
@@ -59,7 +69,6 @@ object ProjectBuild extends Build {
             publishLocal := {},
             publish := {}
          )
-   lazy val examplesRef = LocalProject("examples")
 
    def commonSettings = Seq(
       scalaVersion := "2.11.8",
