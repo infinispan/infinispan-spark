@@ -115,3 +115,40 @@ Source code for the samples can be changed without a docker container restart, b
 ### 6. Stop containers
 
 ```docker-compose stop```
+
+### Errors
+
+When you start the `StreamConsumer`, you might see no tweets being consumed, e.g.
+
+```
+Obtaining Spark master
+Submitting the job
+Using Spark's default log4j profile: org/apache/spark/log4j-defaults.properties
+17/11/25 20:05:51 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+0 tweets inserted in the cache
+Last tweet:<no tweets received so far>
+
+0 tweets inserted in the cache
+Last tweet:<no tweets received so far>
+
+0 tweets inserted in the cache
+Last tweet:<no tweets received so far>
+
+0 tweets inserted in the cache
+Last tweet:<no tweets received so far>
+...
+```
+
+There are several causes for this:
+First, verify that you have passed in the right credentials when executing `run-job` script.
+Even if you pass in the right credentials, you might get see one of the workers reporting:
+
+    17/11/25 20:07:07 WARN ClientBase: Hosebird-client Error connecting w/ status code - 401, reason - Authorization Required
+
+The error might be caused due to the clock of the Docker daemon being out of sync.
+When a request is sent to Twitter, the current timestamp is sent.
+If this timestamp is too far in the past, Twitter will reject the request (see 
+[here](https://vandannguyen.wordpress.com/2014/12/02/twitter-error-connecting-w-status-code-401-reason-authorization-required/)
+for more info).
+The Docker daemon's clock can get out of sync when the computer has been sent to sleep.
+So to fix the problem, simply restart the Docker daemon. 
