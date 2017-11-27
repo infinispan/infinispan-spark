@@ -7,10 +7,15 @@ infinispan2:
 sparkMaster:
   image: gustavonalle/spark:$SPARK_VERSION
   container_name: sparkMaster
+  ports:
+    - "9080:9080"
+    - "9081:9081"
   volumes:
     - $PWD/target:/usr/local/code:z
 sparkSlave:
   image: gustavonalle/spark:$SPARK_VERSION
   container_name: sparkSlave
+  ports:
+    - "9082:9081"
   links:
     - sparkMaster:master
