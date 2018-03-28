@@ -9,6 +9,12 @@ class PropertiesSuite extends FunSuite with Matchers {
 
    test("to StringMap and back") {
 
+      val cfg = <infinispan>
+         <cache-container>
+            <local-cache name="test"/>
+         </cache-container>
+      </infinispan>.toString()
+
       val initialConfig = new ConnectorConfiguration()
         .setCacheName("test")
         .setServerList("localhost:1234,localhost:2345")
@@ -22,18 +28,21 @@ class PropertiesSuite extends FunSuite with Matchers {
         .addProtoFile("file1", "message A {}")
         .addProtoFile("file2", "message B {}")
         .addHotRodClientProperty("infinispan.client.test", "value")
+        .setAutoCreateCacheFromConfig(cfg)
 
       val stringMap = initialConfig.toStringsMap
 
       stringMap(ConnectorConfiguration.CacheName) shouldBe "test"
       stringMap(SERVER_LIST) shouldBe "localhost:1234,localhost:2345"
       stringMap(ConnectorConfiguration.TargetEntity) shouldBe "org.infinispan.spark.domain.Runner"
+      stringMap(ConnectorConfiguration.AutoCreateCacheConfig) shouldBe cfg
 
       val converted = ConnectorConfiguration(stringMap)
 
       converted.getCacheName shouldBe initialConfig.getCacheName
       converted.getServerList shouldBe initialConfig.getServerList
       converted.getTargetEntity shouldBe initialConfig.getTargetEntity
+      converted.getAutoCreateCacheFromConfig shouldBe cfg
    }
 
 }

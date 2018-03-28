@@ -51,6 +51,8 @@ Method          | Description | Default
 ------------- | -------------|----------
 setServerList(String) | List of servers | localhost:11222 | 
 setCacheName(String) | The name of the Infinispan cache to be used in the computations | default cache | 
+setAutoCreateCacheFromConfig(String) | Creates the cache with the supplied configuration in case it does not exist. The configuration is in XML format and follows the [Infinispan Embedded Schema](http://infinispan.org/schemas/infinispan-config-9.2.xsd) |
+setAutoCreateCacheFromTemplate(String) | Creates the cache with a pre-existent [configuration template](http://infinispan.org/docs/stable/user_guide/user_guide.html#cache_configuration_templates) in case it does not exist. This setting is ignored if setAutoCreateCacheFromConfig() was previously called  |
 setReadBatchSize(Integer)  | Batch size (number of entries) when reading from the cache | 10000 | 
 setWriteBatchSize(Integer) | Batch size (number of entries) when writing to the cache | 500
 setPartitions(Integer) | Number of partitions created per Infinispan server when processing data | 2
@@ -112,6 +114,73 @@ ConnectorConfiguration config = new ConnectorConfiguration()
 JavaPairRDD<String, MyEntity> infinispanRDD = InfinispanJavaRDD.createInfinispanRDD(jsc, config);
 
 JavaRDD<MyEntity> entitiesRDD = infinispanRDD.values();
+```
+
+#### Cache lifecycle control
+
+##### Scala
+
+```scala
+import org.apache.spark.SparkContext
+import org.infinispan.spark.config.ConnectorConfiguration
+import org.infinispan.spark.rdd.InfinispanRDD
+
+val sc: SparkContext = new SparkContext()
+
+// Automatically create distributed cache "tempCache" in the server
+val config = new ConnectorConfiguration()
+                    .setCacheName("myTempCache")
+                    .setServerList("10.9.0.8:11222")
+                    .setAutoCreateCacheFromConfig(<infinispan><cache-container><distributed-cache name="tempCache"/></cache-container></infinispan>.toString)
+
+val infinispanRDD = new InfinispanRDD[String, MyEntity](sc, config)
+
+val entitiesRDD = infinispanRDD.values
+
+// Obtain the cache admin object
+val cacheAdmin = infinispanRDD.cacheAdmin()
+
+// Check if cache exists
+cacheAdmin.exists("tempCache")
+
+// Clear cache
+cacheAdmin.clear("tempCache")
+
+// Delete cache
+cacheAdmin.delete("tempCache")
+
+```
+
+##### Java
+
+```java
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.infinispan.spark.config.ConnectorConfiguration;
+import org.infinispan.spark.rdd.InfinispanJavaRDD;
+
+JavaSparkContext jsc = new JavaSparkContext();
+
+ConnectorConfiguration config = new ConnectorConfiguration()
+    .setCacheName("exampleCache").setServerList("server:11222")
+    .setAutoCreateCacheFromConfig("<infinispan><cache-container><distributed-cache name=\"tempCache\"/></cache-container></infinispan>");
+
+InfinispanJavaRDD<String, MyEntity> infinispanRDD = InfinispanJavaRDD.createInfinispanRDD(jsc, config);
+
+JavaRDD<MyEntity> entitiesRDD = infinispanRDD.values();
+
+// Obtain the cache admin object
+CacheAdmin cacheAdmin = infinispanRDD.cacheAdmin();
+
+// Check if cache exists
+cacheAdmin.exists("tempCache");
+
+// Clear cache
+cacheAdmin.clear("tempCache");
+
+// Delete cache
+cacheAdmin.delete("tempCache");
 ```
 
 #### Creating an RDD Using a custom Splitter

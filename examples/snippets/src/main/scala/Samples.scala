@@ -25,6 +25,36 @@ class Samples {
     val entitiesRDD = infinispanRDD.values
   }
 
+  def cacheAdmin(): Unit = {
+    import org.apache.spark.SparkContext
+    import org.infinispan.spark.config.ConnectorConfiguration
+    import org.infinispan.spark.rdd.InfinispanRDD
+
+    val sc: SparkContext = new SparkContext()
+
+    // Automatically create distributed cache "tempCache" in the server
+    val config = new ConnectorConfiguration()
+       .setCacheName("myTempCache")
+       .setServerList("10.9.0.8:11222")
+       .setAutoCreateCacheFromConfig(<infinispan><cache-container><distributed-cache name="tempCache"/></cache-container></infinispan>.toString())
+
+    val infinispanRDD = new InfinispanRDD[String, MyEntity](sc, config)
+
+    val entitiesRDD = infinispanRDD.values
+
+    // Obtain the cache admin object
+    val cacheAdmin = infinispanRDD.cacheAdmin()
+
+    // Check if cache exists
+    cacheAdmin.exists("tempCache")
+
+    // Clear cache
+    cacheAdmin.clear("tempCache")
+
+    // Delete cache
+    cacheAdmin.delete("tempCache")
+  }
+
   def splitter(): Unit = {
     import org.apache.spark.SparkContext
     import org.infinispan.spark.config.ConnectorConfiguration

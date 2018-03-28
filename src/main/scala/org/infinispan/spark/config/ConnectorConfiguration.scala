@@ -24,6 +24,8 @@ class ConnectorConfiguration extends Serializable {
    private val protoAnnotatedClasses = mutable.Set[Class[_]]()
    private val descriptors = mutable.Map[String, String]()
    private val hotRodClientProps = new Properties()
+   private var autoCreateCacheFromConfig: String = ""
+   private var autoCreateCacheFromTemplate: String = ""
 
    def setCacheName(cacheName: String): ConnectorConfiguration = {
       this.cacheName = cacheName
@@ -104,6 +106,16 @@ class ConnectorConfiguration extends Serializable {
       this
    }
 
+   def setAutoCreateCacheFromConfig(configuration: String): ConnectorConfiguration = {
+      this.autoCreateCacheFromConfig = configuration
+      this
+   }
+
+   def setAutoCreateCacheFromTemplate(template: String): ConnectorConfiguration = {
+      this.autoCreateCacheFromTemplate = template
+      this
+   }
+
 
    import ConnectorConfiguration._
 
@@ -112,6 +124,8 @@ class ConnectorConfiguration extends Serializable {
       val stringMap = mutable.Map[String, String]()
 
       stringMap += CacheName -> cacheName
+      stringMap += AutoCreateCacheConfig -> autoCreateCacheFromConfig
+      stringMap += AutoCreateCacheTemplate -> autoCreateCacheFromTemplate
       stringMap += ReadBatchSize -> readBatchSize.toString
       stringMap += WriteBatchSize -> writeBatchSize.toString
       stringMap += PartitionsPerServer -> serverPartitions.toString
@@ -137,6 +151,10 @@ class ConnectorConfiguration extends Serializable {
 
 
    def getCacheName = cacheName
+
+   def getAutoCreateCacheFromConfig = autoCreateCacheFromConfig
+
+   def getAutoCreateCacheFromTemplate = autoCreateCacheFromTemplate
 
    def getReadBatchSize = readBatchSize
 
@@ -171,6 +189,8 @@ object ConnectorConfiguration {
    private val HotRodClientConfigPrefix = "infinispan.client"
 
    val CacheName = "infinispan.rdd.cacheName"
+   val AutoCreateCacheConfig = "infinispan.rdd.auto_create_cache_cfg"
+   val AutoCreateCacheTemplate = "infinispan.rdd.auto_create_cache_template"
    val ReadBatchSize = "infinispan.rdd.read_batch_size"
    val WriteBatchSize = "infinispan.rdd.write_batch_size"
    val PartitionsPerServer = "infinispan.rdd.number_server_partitions"
@@ -192,6 +212,8 @@ object ConnectorConfiguration {
    def apply(m: Map[String, String]): ConnectorConfiguration = {
       val config = new ConnectorConfiguration
       m.get(CacheName).foreach(config.setCacheName)
+      m.get(AutoCreateCacheConfig).foreach(config.setAutoCreateCacheFromConfig)
+      m.get(AutoCreateCacheTemplate).foreach(config.setAutoCreateCacheFromTemplate)
       m.get(ReadBatchSize).foreach(b => config.setReadBatchSize(b.toInt))
       m.get(WriteBatchSize).foreach(b => config.setWriteBatchSize(b.toInt))
       m.get(PartitionsPerServer).foreach(p => config.setPartitions(p.toInt))

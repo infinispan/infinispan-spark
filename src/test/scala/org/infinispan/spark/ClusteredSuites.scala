@@ -11,7 +11,7 @@ import org.scalatest.{BeforeAndAfterAll, Suites}
 class ClusteredSuites extends Suites(new DistributedSuite, new ReplicatedSuite, new SQLSuite, new StreamingSuite,
    new FilterByQueryProtoAnnotationSuite, new CustomFilterRDDSuite, new FilterByQueryProtoSuite,
    new RDDFailOverSuite, new StreamingFailOverSuite, new CustomSplitterSuite, new DataSetSuite,
-   new DatasetWithScalaEntitySuite) with BeforeAndAfterAll {
+   new DatasetWithScalaEntitySuite, new CacheLifecycleSuite) with BeforeAndAfterAll {
 
    override protected def beforeAll(): Unit = {
       Cluster.start()
