@@ -25,13 +25,14 @@
 | 0.4  | 8.2.x 9.x | 2.0.0 | 2.10.x / 2.11.x | 8  |
 | 0.5  | 8.2.x 9.x | 2.1.0 | 2.11.x | 8  |
 | 0.6  | 8.2.x 9.x | 2.1.0 2.2.0 | 2.11.x | 8  |
+| 0.7  | 9.2.1 | 2.3.x | 2.11.x | 8 |
 
 
 #### Dependency:
 
 Sbt:  
 
-```"org.infinispan" %% "infinispan-spark" % "0.6"```
+```"org.infinispan" %% "infinispan-spark" % "0.7"```
 
 Maven:
 
@@ -39,7 +40,7 @@ Maven:
 <dependency>
     <groupId>org.infinispan</groupId>
     <artifactId>infinispan-spark_2.11</artifactId>
-    <version>0.6</version>
+    <version>0.7</version>
 </dependency>
 ```
 
