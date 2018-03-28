@@ -9,8 +9,8 @@ import org.apache.spark.{Partition, SparkContext, TaskContext}
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
 import org.infinispan.query.dsl.Query
-import org.infinispan.spark._
 import org.infinispan.spark.config.ConnectorConfiguration
+import org.infinispan.spark.{CacheAdmin, _}
 
 /**
   * @author gustavonalle
@@ -18,17 +18,32 @@ import org.infinispan.spark.config.ConnectorConfiguration
 class InfinispanRDD[K, V](@transient val sc: SparkContext,
                           val configuration: ConnectorConfiguration,
                           @transient val splitter: Splitter = new PerServerSplitter)
-  extends RDD[(K, V)](sc, Nil) {
+   extends RDD[(K, V)](sc, Nil) with CacheManagementAware {
 
    private[rdd] def createBuilder(preferredAddress: InetSocketAddress, properties: Properties) =
       new ConfigurationBuilder().withProperties(properties)
-        .balancingStrategy(new PreferredServerBalancingStrategy(preferredAddress))
+         .balancingStrategy(new PreferredServerBalancingStrategy(preferredAddress))
+
+   @transient lazy val remoteCacheManager: RemoteCacheManager = RemoteCacheManagerBuilder.create(configuration)
+
+   @transient lazy val _cacheAdmin = new CacheAdmin(remoteCacheManager)
 
    @transient lazy val remoteCache: RemoteCache[K, V] = {
       val remoteCacheManager = RemoteCacheManagerBuilder.create(configuration)
       sc.addSparkListener(new SparkListener {
          override def onJobEnd(jobEnd: SparkListenerJobEnd): Unit = remoteCacheManager.stop()
       })
+      val cacheName = configuration.getCacheName
+      val cacheCfg = configuration.getAutoCreateCacheFromConfig
+      val cacheTemplate = configuration.getAutoCreateCacheFromTemplate
+      if (cacheName != null && !_cacheAdmin.exists(cacheName)) {
+         if (cacheCfg.isEmpty && cacheTemplate.isEmpty) throw new NonExistentCacheException
+         if (cacheCfg.nonEmpty) {
+            _cacheAdmin.createFromConfig(cacheName, cacheCfg)
+         } else if (cacheTemplate.nonEmpty) {
+            _cacheAdmin.createFromTemplate(cacheName, cacheTemplate)
+         }
+      }
       getCache[K, V](configuration, remoteCacheManager)
    }
 
@@ -74,4 +89,6 @@ class InfinispanRDD[K, V](@transient val sc: SparkContext,
       configuration.setServerList(getCacheTopology(segmentsByServer))
       splitter.split(segmentsByServer, configuration)
    }
+
+   override def cacheAdmin(): CacheAdmin = _cacheAdmin
 }

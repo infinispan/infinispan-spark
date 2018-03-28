@@ -29,7 +29,7 @@ object InfinispanJavaRDD {
 
 class InfinispanJavaRDD[K, V](rdd: InfinispanRDD[K, V])
                              (implicit override val kClassTag: ClassTag[K], implicit override val vClassTag: ClassTag[V])
-  extends JavaPairRDD[K, V](rdd) {
+  extends JavaPairRDD[K, V](rdd) with CacheManagementAware {
 
    def filterByQuery[R](q: Query): JavaPairRDD[K, R] = {
      val filteredRDD = rdd.filterByQuery[R](q)
@@ -48,4 +48,8 @@ class InfinispanJavaRDD[K, V](rdd: InfinispanRDD[K, V])
       implicit val converted = ClassTag.AnyRef.asInstanceOf[ClassTag[R]]
       JavaPairRDD.fromRDD[K, R](filteredRDD)
    }
+
+   override def count() = rdd.count()
+
+   override def cacheAdmin(): CacheAdmin = rdd.cacheAdmin()
 }
