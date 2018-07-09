@@ -1,4 +1,5 @@
 import Deps._
+import Versions._
 import sbt.Keys._
 import sbt._
 import sbtassembly.AssemblyKeys._
@@ -6,10 +7,15 @@ import sbtassembly._
 
 object ProjectBuild extends Build {
 
+   val downloadServer = taskKey[Unit]("Download the server zip")
    val extractServer = taskKey[Seq[File]]("Extract infinispan server")
    lazy val getSparkVersion = taskKey[Unit]("Get Spark version used")
    lazy val getInfinispanVersion = taskKey[Unit]("Get Infinispan version used")
    lazy val ServerFolder = "infinispan-server"
+   lazy val ServerQualifier = "bin"
+   lazy val serverZip = s"infinispan-server-$infinispanVersion-$ServerQualifier.zip"
+   lazy val ServerZipURL = s"http://downloads.jboss.org/infinispan/$infinispanVersion/$serverZip"
+   lazy val ServerDownloadDir = System.getProperty("user.home")
 
    lazy val core = (project in file("."))
          .settings(commonSettings: _ *)
@@ -18,12 +24,21 @@ object ProjectBuild extends Build {
          .settings(
             moduleName := "infinispan-spark",
             libraryDependencies ++= Seq(sparkCore, sparkStreaming, sparkSQL, sparkHive, hotRodClient, queryDSL, jcip,
-               junit, scalaTest, scalaDMR, remoteQueryClient, protoStream, infinispanServerZip,
+               junit, scalaTest, scalaDMR, remoteQueryClient, protoStream,
                shrinkWrap, infinispanCore, sl4jbridge, log4j),
+            downloadServer := {
+               val destination = new File(ServerDownloadDir, serverZip)
+               if (java.nio.file.Files.notExists(destination.toPath)) {
+                  println("Server not available locally, downloading...")
+                  IO.download(new URL(ServerZipURL), destination)
+               } else {
+                  println("Server already downloaded")
+               }
+            },
             extractServer := {
+               downloadServer.value
                val report = update.value
-               val deps = report.matching(artifactFilter(name = "infinispan-server-build", extension = "zip"))
-               val zipPath = deps.head.getAbsoluteFile
+               val zipPath = new File(ServerDownloadDir, serverZip)
                val destination = (resourceManaged in Test).value
                val destinationWithoutVersion = destination / ServerFolder
                IO.unzip(zipPath, destination).toSeq

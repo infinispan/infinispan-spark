@@ -16,7 +16,6 @@ object Deps {
    // Tests dependencies
    val junit = "junit" % "junit" % junitVersion % "test"
    val scalaTest = "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
-   val infinispanServerZip = "org.infinispan.server" % "infinispan-server-build" % infinispanVersion % "test" artifacts Artifact("infinispan-server-build", "zip", "zip")
    val scalaDMR = "org.jboss" %% "dmr-repl" % scalaDMRVersion % "test"
    val shrinkWrap = "org.jboss.shrinkwrap" % "shrinkwrap-depchain" % shrinkWrapVersion % "test"
    val infinispanCore = "org.infinispan" % "infinispan-core" % infinispanVersion
