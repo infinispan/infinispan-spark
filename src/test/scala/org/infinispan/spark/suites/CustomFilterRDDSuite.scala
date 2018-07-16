@@ -13,14 +13,14 @@ class CustomFilterRDDSuite extends FunSuite with RunnersCache with Spark with Mu
 
    override def withFilters() = List(
       new FilterDef(
-         classOf[SampleFilterFactory],
-         classOf[SampleFilterFactory#SampleFilter],
-         classOf[Runner]
+         factoryClass = classOf[SampleFilterFactory],
+         classes = Seq(classOf[SampleFilterFactory#SampleFilter]),
+         moduleDeps = Seq(TestEntities.moduleName, "org.scala")
       ),
       new FilterDef(
          classOf[SampleFilterFactoryWithParam],
-         classOf[SampleFilterFactoryWithParam#SampleFilterParam],
-         classOf[Runner]
+         classes = Seq(classOf[SampleFilterFactoryWithParam#SampleFilterParam]),
+         moduleDeps = Seq(TestEntities.moduleName, "org.scala")
       )
    )
 

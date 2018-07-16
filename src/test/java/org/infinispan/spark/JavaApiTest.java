@@ -1,7 +1,17 @@
 package org.infinispan.spark;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.infinispan.client.hotrod.RemoteCache;
+import org.infinispan.spark.config.ConnectorConfiguration;
+import org.infinispan.spark.domain.Address;
+import org.infinispan.spark.domain.Person;
+import org.infinispan.spark.rdd.InfinispanJavaRDD;
+import scala.Tuple2;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -9,20 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SQLContext;
-import org.apache.spark.sql.SparkSession;
-import org.infinispan.client.hotrod.RemoteCache;
-import org.infinispan.spark.config.ConnectorConfiguration;
-import org.infinispan.spark.domain.Address;
-import org.infinispan.spark.domain.Person;
-import org.infinispan.spark.rdd.InfinispanJavaRDD;
-
-import scala.Tuple2;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author gustavonalle
@@ -68,7 +66,7 @@ public class JavaApiTest {
       assertEquals(new HashSet<>(COUNTRIES), map.keySet());
    }
 
-   public void testRDDWrite() throws Exception {
+   public void testRDDWrite() {
       Person veryOld = new Person("james", 75, new Address("street", 12, "UK"));
       Person teenager = new Person("joan", 17, new Address("street", 12, "FRA"));
       List<Tuple2<Integer, Person>> pairs = Arrays.asList(
@@ -82,13 +80,13 @@ public class JavaApiTest {
       assertEquals(COUNT + 2, cache.size());
    }
 
-   public void testSQL() throws Exception {
-      SQLContext sqlContext = new SQLContext(jsc);
+   public void testSQL() {
+      SparkSession session = SparkSession.builder().sparkContext(jsc.sc()).getOrCreate();
       JavaRDD<Address> addressRDD = infinispanRDD.values().map(Person::getAddress);
-      Dataset<Row> dataset = sqlContext.createDataFrame(addressRDD, Address.class);
+      Dataset<Row> dataset = session.createDataFrame(addressRDD, Address.class);
       dataset.createOrReplaceTempView("addresses");
 
-      List<Row> rows = sqlContext.sql("SELECT a.country from addresses a GROUP BY a.country").collectAsList();
+      List<Row> rows = session.sql("SELECT a.country from addresses a GROUP BY a.country").collectAsList();
 
       assertTrue(rows.stream().allMatch(r -> COUNTRIES.contains(r.getString(0))));
    }

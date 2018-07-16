@@ -12,10 +12,9 @@ object ProjectBuild extends Build {
    lazy val getSparkVersion = taskKey[Unit]("Get Spark version used")
    lazy val getInfinispanVersion = taskKey[Unit]("Get Infinispan version used")
    lazy val ServerFolder = "infinispan-server"
-   lazy val ServerQualifier = "bin"
-   lazy val serverZip = s"infinispan-server-$infinispanVersion-$ServerQualifier.zip"
+   lazy val serverZip = s"infinispan-server-$infinispanVersion.zip"
    lazy val ServerZipURL = s"http://downloads.jboss.org/infinispan/$infinispanVersion/$serverZip"
-   lazy val ServerDownloadDir = System.getProperty("user.home")
+   lazy val ServerDownloadDir: String = System.getProperty("user.home")
 
    lazy val core = (project in file("."))
          .settings(commonSettings: _ *)
@@ -36,7 +35,7 @@ object ProjectBuild extends Build {
                }
             },
             extractServer := {
-               downloadServer.value
+               val d = downloadServer.value
                val report = update.value
                val zipPath = new File(ServerDownloadDir, serverZip)
                val destination = (resourceManaged in Test).value

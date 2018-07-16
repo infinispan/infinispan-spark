@@ -1,8 +1,9 @@
 package org.infinispan.spark.rdd
 
 import java.net.InetSocketAddress
+import java.util.function.Supplier
 
-import org.infinispan.client.hotrod.RemoteCacheManager
+import org.infinispan.client.hotrod.{FailoverRequestBalancingStrategy, RemoteCacheManager}
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.marshall.ProtoStreamMarshaller
 import org.infinispan.commons.marshall.Marshaller
@@ -43,7 +44,10 @@ object RemoteCacheManagerBuilder {
 
    private def createBuilder(cfg: ConnectorConfiguration, preferredAddress: Option[InetSocketAddress], marshaller: Option[Marshaller]) = {
       val configBuilder = new ConfigurationBuilder().withProperties(cfg.getHotRodClientProperties)
-      preferredAddress.foreach(a => configBuilder.balancingStrategy(new PreferredServerBalancingStrategy(a)))
+      def balancingStrategyFactory(a: InetSocketAddress) = new Supplier[FailoverRequestBalancingStrategy] {
+         override def get(): FailoverRequestBalancingStrategy = new PreferredServerBalancingStrategy(a)
+      }
+      preferredAddress.foreach(balancingStrategyFactory)
       marshaller.foreach(m => configBuilder.marshaller(m))
       configBuilder
    }

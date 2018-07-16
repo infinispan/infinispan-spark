@@ -8,6 +8,7 @@ import java.nio.file.{Files, Paths}
 import org.infinispan.client.hotrod.RemoteCacheManager
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.filter.{KeyValueFilterConverterFactory, NamedFactory}
+import org.infinispan.spark.domain.{Person, Runner}
 import org.infinispan.spark.test.TestingUtil.{DefaultDuration, waitForCondition}
 import org.jboss.as.controller.client.helpers.ClientConstants._
 import org.jboss.dmr.repl.{Client, Response}
@@ -25,6 +26,8 @@ import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 import scala.sys.process._
 import scala.util.{Failure, Success, Try}
+import scala.xml.transform.{RewriteRule, RuleTransformer}
+import scala.xml.{Elem, Node, XML}
 
 /**
  * @author gustavonalle
@@ -35,10 +38,21 @@ object CacheType extends Enumeration {
    val DISTRIBUTED = Value("distributed-cache")
 }
 
-class FilterDef(val factoryImpl: Class[_ <: KeyValueFilterConverterFactory[_, _, _]], val deps: Class[_]*) {
-   val name = factoryImpl.getAnnotation(classOf[NamedFactory]).name()
-   val allClasses = deps :+ factoryImpl
+class FilterDef(val factoryClass: Class[_ <: KeyValueFilterConverterFactory[_, _, _]], val moduleDeps: Seq[String] = Seq(), val classes: Seq[Class[_]]) {
+   val name = factoryClass.getAnnotation(classOf[NamedFactory]).name()
+   val allClasses = classes :+ factoryClass
 }
+
+class EntityDef(val classes: Seq[Class[_]], val moduleDeps: Seq[String], val jarName: String)
+
+object TestEntities extends EntityDef(
+   Seq(classOf[Runner], classOf[org.infinispan.spark.domain.Address], classOf[Person]),
+   Seq("org.infinispan.commons", "org.infinispan.protostream"),
+   jarName = "entities.jar") {
+
+   val moduleName = "deployment." + jarName
+}
+
 /**
  * A cluster of Infinispan Servers that can be managed together
  */
@@ -48,14 +62,18 @@ private[test] class Cluster(size: Int, location: String) {
    val CacheContainer = "clustered"
    val ServerConfig = "clustered.xml"
    @volatile private var started = false
+   var entities: Option[EntityDef] = None
 
    Runtime.getRuntime.addShutdownHook(new Thread {
       override def run(): Unit = Try(shutDown())
    })
 
+   def addEntities(entities: EntityDef): Unit = this.entities = Some(entities)
+
    def startServers(servers: Seq[InfinispanServer], timeOut: Duration): Boolean = {
       import scala.concurrent.blocking
       val futureServers = servers.map { s =>
+         entities.foreach(s.addEntities)
          Future {
             blocking {
                s.startAndWaitForCluster(ServerConfig, _servers.size + servers.size, timeOut)
@@ -106,7 +124,7 @@ private[test] class Cluster(size: Int, location: String) {
       _servers.foreach(_.addCache(CacheContainer, name, cacheType, extraConfigs))
    }
 
-   def getServerList = _servers.map( s => s"localhost:${s.getHotRodPort}").mkString(";")
+   def getServerList = _servers.map(s => s"localhost:${s.getHotRodPort}").mkString(";")
 
    def addFilter(f: FilterDef) = _servers.foreach(_.addFilter(f))
 
@@ -127,6 +145,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    val PortOffsetConfig = "-Djboss.socket.binding.port-offset"
    val StackConfig = "-Djboss.default.jgroups.stack=tcp"
    val TimeoutConfig = "-Djgroups.join_timeout=1000"
+   val PreferIpv4Config = "-Djava.net.preferIPv4Stack=true"
    val DataDir = "-Djboss.server.data.dir"
    val InfinispanSubsystem = "datagrid-infinispan"
    val Host = "localhost"
@@ -176,7 +195,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       val launch = Paths.get(serverHome, BinFolder, LaunchScript)
       new File(launch.toString).setExecutable(true)
       val cmd = mutable.ListBuffer[String](Paths.get(serverHome, BinFolder, LaunchScript).toString)
-      if(isDebug) {
+      if (isDebug) {
          cmd += s"--debug"
          cmd += s"${baseDebugPort + portOffSet}"
       }
@@ -184,6 +203,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       if (clustered) {
          cmd += StackConfig
          cmd += TimeoutConfig
+         cmd += PreferIpv4Config
       }
       cmd += s"$NameNodeConfig=$name"
       cmd += s"$LogDirConfig=$logDir/$name"
@@ -191,6 +211,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       if (portOffSet > 0) {
          cmd += s"$PortOffsetConfig=$portOffSet"
       }
+      cmd += "-Dinfinispan.deserialization.whitelist.regexps=org.infinispan.spark.domain.*"
       launcher = Process(cmd).run(new ProcessLogger {
          override def out(s: => String): Unit = {}
 
@@ -256,10 +277,10 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    private def getManagementPort = if (portOffSet == 0) ManagementPort else ManagementPort + portOffSet
 
    def waitForNumberOfMembers(members: Int, duration: Duration = DefaultDuration): Unit =
-      waitForServerOperationResult[Int](ModelNode() at ("subsystem" -> InfinispanSubsystem)/ ("cache-container" -> "clustered") op 'read_attribute('name -> "cluster-size"), _ == members, duration)
+      waitForServerOperationResult[Int](ModelNode() at ("subsystem" -> InfinispanSubsystem) / ("cache-container" -> "clustered") op 'read_attribute ('name -> "cluster-size"), _ == members, duration)
 
    def waitForCacheManager(name: String): Unit =
-      waitForServerOperationResult[String](ModelNode() at ("subsystem" -> InfinispanSubsystem)/ ("cache-container" -> name) op 'read_attribute('name -> "cache-manager-status"), _ == "RUNNING")
+      waitForServerOperationResult[String](ModelNode() at ("subsystem" -> InfinispanSubsystem) / ("cache-container" -> name) op 'read_attribute ('name -> "cache-manager-status"), _ == "RUNNING")
 
    def addLocalCache(cacheName: String, config: Option[ModelNode]) = {
       addCache("local", cacheName, CacheType.LOCAL, config)
@@ -296,22 +317,63 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       }
    }
 
-   def deployArchive(archive: JavaArchive) = {
+   def deployArchive(archive: JavaArchive, waitDeployment: Boolean = true) = {
       archive.as(classOf[ZipExporter]).exportTo(Paths.get(serverHome, DeploymentFolder, archive.getName).toFile, true)
-      waitForServerOperationResult[Boolean](
-         ModelNode() at ("deployment" -> archive.getName) op 'read_attribute (
-            'name -> "enabled"), _ == true
+      if (waitDeployment) {
+         waitForServerOperationResult[Boolean](
+            ModelNode() at ("deployment" -> archive.getName) op 'read_attribute (
+               'name -> "enabled"), _ == true
          )
+      }
    }
 
    def undeployArchive(name: String) = Paths.get(serverHome, DeploymentFolder, name).toFile.delete()
 
    def addFilter(filterDef: FilterDef) = {
       deployArchive(ShrinkWrap
-              .create(classOf[JavaArchive], s"${filterDef.name}.jar")
-              .addClasses(filterDef.allClasses: _*)
-              .setManifest(new StringAsset("Dependencies: org.scala"))
-              .addAsServiceProvider(classOf[KeyValueFilterConverterFactory[_, _, _]], filterDef.factoryImpl))
+         .create(classOf[JavaArchive], s"${filterDef.name}.jar")
+         .addClasses(filterDef.allClasses: _*)
+         .setManifest(new StringAsset(s"Dependencies: ${filterDef.moduleDeps.mkString(",")}"))
+         .addAsServiceProvider(classOf[KeyValueFilterConverterFactory[_, _, _]], filterDef.factoryClass))
+   }
+
+   def addEntities(entities: EntityDef): Unit = {
+      val cacheManagerName = if (clustered) "clustered" else "local"
+      val configName = if (clustered) "clustered.xml" else "standalone.xml"
+      val configFile = Paths.get(serverHome, DefaultConfigFolder, configName).toFile
+      val xmlFile = XML.loadFile(configFile)
+      val exists = ((xmlFile \\ "cache-container").filter(n => n.attributes.asAttrMap.exists { case (k, v) => k.equals("name") && v.equals(cacheManagerName) } ) \ "modules" \ "module" \ "@name" text) == TestEntities.moduleName
+
+      val moduleConfig = <modules>
+         <module name={TestEntities.moduleName}/>
+      </modules>
+
+      def addChildToNode(element: Node, elementName: String, attributeName: String, attributeValue: String, elementToAdd: Node) = {
+         object Rule extends RewriteRule {
+            override def transform(n: Node): Seq[Node] = n match {
+               case Elem(prefix, en, att, scope, child@_*)
+                  if en == elementName && att.asAttrMap.exists(t => t._1 == attributeName && t._2 == attributeValue) =>
+                  Elem(prefix, en, att, scope, child.isEmpty, elementToAdd ++ child: _*)
+               case other => other
+            }
+         }
+         object Transform extends RuleTransformer(Rule)
+         Transform(element)
+      }
+
+      def addModuleDepToCacheManager(moduleName: String, cacheManagerName: String) = {
+         val newXML = addChildToNode(xmlFile, "cache-container", "name", cacheManagerName,
+            moduleConfig)
+         XML.save(configFile.getAbsolutePath, newXML, "UTF-8")
+      }
+
+      if (entities.classes.nonEmpty && !exists) {
+         deployArchive(ShrinkWrap.create(classOf[JavaArchive], entities.jarName)
+            .setManifest(new StringAsset(s"Dependencies: ${entities.moduleDeps.mkString(",")}"))
+            .addClasses(entities.classes: _*),
+            waitDeployment = false)
+         addModuleDepToCacheManager(TestEntities.moduleName, cacheManagerName)
+      }
    }
 
    def removeFilter(filterDef: FilterDef) = undeployArchive(s"${filterDef.name}.jar")
@@ -322,7 +384,8 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 
    // Create optimal number of ops to add a model node to a specific path
    private def createInsertOperations(basePath: Address, modelNode: ModelNode): ModelNode = {
-      val opsByPath = mutable.LinkedHashMap[ListBuffer[String],mutable.Map[String,Any]]()
+      val opsByPath = mutable.LinkedHashMap[ListBuffer[String], mutable.Map[String, Any]]()
+
       def process(n: ModelNode, path: ListBuffer[String]): Unit = {
          n.keys.foreach { k =>
             n(k) match {
@@ -331,6 +394,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
             }
          }
       }
+
       process(modelNode, ListBuffer())
       val operations = opsByPath flatMap { case (path, attributes) =>
          val addOperation = createAddOpWithAttributes(attributes.toMap)
@@ -378,7 +442,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    }
 }
 
-sealed trait SingleNode  {
+sealed trait SingleNode {
    val ServerPath: String = "/infinispan-server/"
 
    val server: InfinispanServer = new InfinispanServer(ServerPath, "standalone")
@@ -392,7 +456,7 @@ sealed trait SingleNode  {
 
    private def start(config: String) = if (!server.isStarted) server.startAndWaitForCacheManager(config, "local")
 
-   def beforeStart(): Unit = {}
+   def beforeStart(): Unit = server.addEntities(TestEntities)
 
    def afterShutDown(): Unit = {}
 
@@ -416,11 +480,12 @@ object SingleSecureNode extends SingleNode {
 
    override def getConfigFile = "../../docs/examples/configs/standalone-hotrod-ssl.xml"
 
-   val extraFiles: Seq[java.nio.file.Path] = Seq(toPath("/keystore_server.jks"),toPath("/ca.jks"))
+   val extraFiles: Seq[java.nio.file.Path] = Seq(toPath("/keystore_server.jks"), toPath("/ca.jks"))
 
    def toPath(classPath: String): java.nio.file.Path = Paths.get(getClass.getResource(classPath).getPath)
 
    override def beforeStart() = {
+      super.beforeStart()
       val serverConfig = Paths.get(getClass.getResource(ServerPath).getPath, "/standalone/configuration")
       extraFiles.foreach(f => Files.copy(f, serverConfig.resolve(f.getFileName), REPLACE_EXISTING))
    }
@@ -433,9 +498,12 @@ object Cluster {
 
    private val cluster: Cluster = new Cluster(NumberOfServers, ServerPath)
 
-   def start() = if (!cluster.isStarted) cluster.startAndWait(StartTimeout)
+   def start() = if (!cluster.isStarted) {
+      cluster.addEntities(TestEntities)
+      cluster.startAndWait(StartTimeout)
+   }
 
-   def addFilter[K,V,C](f: FilterDef) = cluster.addFilter(f)
+   def addFilter[K, V, C](f: FilterDef) = cluster.addFilter(f)
 
    def removeFilter(f: FilterDef) = cluster.removeFilter(f)
 

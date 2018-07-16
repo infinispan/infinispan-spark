@@ -1,10 +1,5 @@
 package org.infinispan.spark.examples.twitter;
 
-import static org.infinispan.spark.examples.twitter.Sample.usage;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
@@ -13,9 +8,14 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.SparkSession;
 import org.infinispan.spark.config.ConnectorConfiguration;
 import org.infinispan.spark.rdd.InfinispanJavaRDD;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+
+import static org.infinispan.spark.examples.twitter.Sample.usage;
 
 /**
  * This demo will group tweets by country and print the top 20 countries, using Spark SQL support.
@@ -47,12 +47,13 @@ public class SQLAggregationJava {
       JavaRDD<Tweet> tweetsRDD = infinispanRDD.values();
 
       // Create a SQLContext, register a data frame and a temp table
-      SQLContext sqlContext = new SQLContext(javaSparkContext);
-      Dataset dataFrame = sqlContext.createDataFrame(tweetsRDD, Tweet.class);
-      dataFrame.registerTempTable("tweets");
+      SparkSession session = SparkSession.builder().config(conf).getOrCreate();
+
+      Dataset dataFrame = session.createDataFrame(tweetsRDD, Tweet.class);
+      dataFrame.createOrReplaceTempView("tweets");
 
       // Run the Query and collect results
-      Dataset<Row> rows = sqlContext.sql("SELECT country, count(*) as c from tweets WHERE country != 'N/A' GROUP BY country ORDER BY c desc");
+      Dataset<Row> rows = session.sql("SELECT country, count(*) as c from tweets WHERE country != 'N/A' GROUP BY country ORDER BY c desc");
 
       rows.takeAsList(20).forEach(System.out::println);
    }
