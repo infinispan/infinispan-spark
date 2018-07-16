@@ -2,9 +2,10 @@ package org.infinispan.spark.rdd
 
 import java.net.SocketAddress
 import java.util
-import org.slf4j.{Logger, LoggerFactory}
 
-import org.infinispan.client.hotrod.impl.transport.tcp.{FailoverRequestBalancingStrategy, RoundRobinBalancingStrategy}
+import org.infinispan.client.hotrod.FailoverRequestBalancingStrategy
+import org.infinispan.client.hotrod.impl.transport.tcp.RoundRobinBalancingStrategy
+import org.slf4j.{Logger, LoggerFactory}
 
 /**
   * Balancing strategy biased towards a pre-chosen server

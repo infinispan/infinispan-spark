@@ -2,12 +2,13 @@ package org.infinispan.spark.rdd
 
 import java.net.InetSocketAddress
 import java.util.Properties
+import java.util.function.Supplier
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerJobEnd}
 import org.apache.spark.{Partition, SparkContext, TaskContext}
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
-import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
+import org.infinispan.client.hotrod.{FailoverRequestBalancingStrategy, RemoteCache, RemoteCacheManager}
 import org.infinispan.query.dsl.Query
 import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.{CacheAdmin, _}
@@ -20,9 +21,12 @@ class InfinispanRDD[K, V](@transient val sc: SparkContext,
                           @transient val splitter: Splitter = new PerServerSplitter)
    extends RDD[(K, V)](sc, Nil) with CacheManagementAware {
 
-   private[rdd] def createBuilder(preferredAddress: InetSocketAddress, properties: Properties) =
-      new ConfigurationBuilder().withProperties(properties)
-         .balancingStrategy(new PreferredServerBalancingStrategy(preferredAddress))
+   private[rdd] def createBuilder(preferredAddress: InetSocketAddress, properties: Properties) = {
+      val balancingFactory = new Supplier[FailoverRequestBalancingStrategy] {
+         override def get(): FailoverRequestBalancingStrategy = new PreferredServerBalancingStrategy(preferredAddress)
+      }
+      new ConfigurationBuilder().withProperties(properties).balancingStrategy(balancingFactory)
+   }
 
    @transient lazy val remoteCacheManager: RemoteCacheManager = RemoteCacheManagerBuilder.create(configuration)
 

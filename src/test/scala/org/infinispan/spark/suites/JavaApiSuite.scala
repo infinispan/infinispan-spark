@@ -1,9 +1,8 @@
 package org.infinispan.spark.suites
 
 import org.infinispan.spark.JavaApiTest
-import org.infinispan.spark.domain._
 import org.infinispan.spark.test.SampleFilters.AgeFilterFactory
-import org.infinispan.spark.test.{FilterDef, JavaSpark, SingleStandardServer}
+import org.infinispan.spark.test.{FilterDef, JavaSpark, SingleStandardServer, TestEntities}
 import org.scalatest._
 
 @DoNotDiscover
@@ -11,13 +10,11 @@ class JavaApiSuite extends FunSuite with JavaSpark with SingleStandardServer wit
 
    lazy val javaTest: JavaApiTest = new JavaApiTest(jsc, sparkSession, getRemoteCache, getConfiguration)
 
-
    override def withFilters() = List(
       new FilterDef(
-         classOf[AgeFilterFactory],
-         classOf[AgeFilterFactory#AgeFilter],
-         classOf[Person],
-         classOf[Address]
+         factoryClass = classOf[AgeFilterFactory],
+         classes = Seq(classOf[AgeFilterFactory#AgeFilter]),
+         moduleDeps = Seq(TestEntities.moduleName, "org.scala")
       )
    )
 

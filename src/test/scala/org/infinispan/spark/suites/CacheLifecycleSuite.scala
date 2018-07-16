@@ -86,7 +86,7 @@ class CacheLifecycleSuite extends FunSuite with RunnersCache with Spark with Mul
    }
 
    test("Auto create caches from template") {
-      val cfg = getConfiguration.setCacheName("pokemon").setAutoCreateCacheFromTemplate("indexed")
+      val cfg = getConfiguration.setCacheName("pokemon").setAutoCreateCacheFromTemplate("memory-bounded")
 
       val rdd = new InfinispanRDD[String, String](sc, configuration = cfg)
 

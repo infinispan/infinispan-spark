@@ -2,11 +2,11 @@ package org.infinispan.spark.test
 
 import java.io.Serializable
 
-import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
+import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
 import org.infinispan.filter.{AbstractKeyValueFilterConverter, KeyValueFilterConverterFactory, NamedFactory}
 import org.infinispan.metadata.Metadata
-import org.infinispan.spark.domain.Runner
+import org.infinispan.spark.domain._
 import org.jboss.dmr.scala.ModelNode
 
 import scala.concurrent.duration._
@@ -28,11 +28,11 @@ object ClusterSample {
       val serverLocation = args(0)
 
       @NamedFactory(name = "sample-filter-factory")
-      class SampleFilterFactory extends KeyValueFilterConverterFactory[Int, Runner, String] with Serializable {
+      class SampleFilterFactory extends KeyValueFilterConverterFactory[Integer, Runner, String] with Serializable {
          override def getFilterConverter = new SampleFilter
 
-         class SampleFilter extends AbstractKeyValueFilterConverter[Int, Runner, String] with Serializable {
-            override def filterAndConvert(k: Int, v: Runner, metadata: Metadata): String = v.getName
+         class SampleFilter extends AbstractKeyValueFilterConverter[Integer, Runner, String] with Serializable {
+            override def filterAndConvert(k: Integer, v: Runner, metadata: Metadata): String = v.getName
          }
 
       }
@@ -50,12 +50,7 @@ object ClusterSample {
                "enabled" -> false
             )
          ),
-         "indexing" -> "NONE",
-         "indexing-properties" -> ModelNode(
-            "default.directory_provider" -> "infinispan",
-            "default.metadata_cachename" -> "indexMetadata",
-            "default.data_cachename" -> "indexData"
-         ), "file-store" -> ModelNode(
+          "file-store" -> ModelNode(
             "FILE_STORE" -> ModelNode(
                "fetch-state" -> false,
                "passivation" -> false,
@@ -74,12 +69,19 @@ object ClusterSample {
 
       val cluster = new Cluster(size = 3, location = serverLocation)
 
+      cluster.addEntities(
+         new EntityDef(
+            Seq(classOf[Person], classOf[Runner], classOf[Address]),
+            Seq("org.infinispan.commons", "org.infinispan.protostream"),
+            "my-entities.jar")
+      )
+
       cluster.startAndWait(20 seconds)
 
       val filterDef = new FilterDef(
          classOf[SampleFilterFactory],
-         classOf[SampleFilterFactory#SampleFilter],
-         classOf[Runner]
+         Seq(TestEntities.moduleName),
+         Seq(classOf[SampleFilterFactory#SampleFilter])
       )
 
       cluster addFilter filterDef
