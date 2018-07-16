@@ -1,9 +1,7 @@
 language: scala
 cache:
   directories:
-    - $HOME/.m2/repository
-    - $HOME/.sbt
-    - $HOME/.ivy2
+    - $HOME
 scala:
    - 2.11.8
 jdk:
