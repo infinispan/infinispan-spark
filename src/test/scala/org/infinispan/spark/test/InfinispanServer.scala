@@ -70,7 +70,7 @@ private[test] class Cluster(size: Int, location: String) {
 
    def addEntities(entities: EntityDef): Unit = this.entities = Some(entities)
 
-   def startServers(servers: Seq[InfinispanServer], timeOut: Duration): Boolean = {
+   private def startServers(servers: Seq[InfinispanServer], timeOut: Duration): Unit = {
       import scala.concurrent.blocking
       val futureServers = servers.map { s =>
          entities.foreach(s.addEntities)
@@ -82,23 +82,30 @@ private[test] class Cluster(size: Int, location: String) {
       }
       val outcome = Future.sequence(futureServers)
       Await.ready(outcome, timeOut)
-      val running = outcome.value match {
+      outcome.value match {
          case Some(Failure(e)) => throw new RuntimeException(e)
-         case _ => true
       }
-      running
+   }
+
+   private def startSequential(servers: Seq[InfinispanServer], timeOut: Duration): Unit = {
+      Await.result(Future {
+         servers.foreach { s =>
+            entities.foreach(s.addEntities)
+            s.startAndWaitForCacheManager(ServerConfig, "clustered")
+         }
+         servers.foreach(_.waitForNumberOfMembers( _servers.size + servers.size, timeOut))
+      }, timeOut)
    }
 
    def isStarted = started
 
-   def startAndWait(duration: Duration) = {
+   def startAndWait(duration: Duration, parallel: Boolean = true) = {
       val servers = for (i <- 0 until size) yield {
          new InfinispanServer(location, s"server$i", clustered = true, i * 1000)
       }
-      if (startServers(servers, duration)) {
-         _servers ++= servers
-         started = true
-      }
+      if (parallel) startServers(servers, duration) else startSequential(servers, duration)
+      _servers ++= servers
+      started = true
    }
 
    def shutDown() = if (started) {
@@ -113,7 +120,8 @@ private[test] class Cluster(size: Int, location: String) {
       _failed_servers += failedServer
    }
 
-   def restoreFailed(timeOut: Duration) = if (startServers(_failed_servers, timeOut)) {
+   def restoreFailed(timeOut: Duration) = {
+      startSequential(_failed_servers, timeOut)
       _servers ++= _failed_servers
       _failed_servers.clear()
    }
@@ -500,7 +508,7 @@ object Cluster {
 
    def start() = if (!cluster.isStarted) {
       cluster.addEntities(TestEntities)
-      cluster.startAndWait(StartTimeout)
+      cluster.startAndWait(StartTimeout, parallel = false)
    }
 
    def addFilter[K, V, C](f: FilterDef) = cluster.addFilter(f)
