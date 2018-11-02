@@ -25,6 +25,24 @@ class Samples {
     val entitiesRDD = infinispanRDD.values
   }
 
+  def differentFormats(): Unit = {
+    import org.apache.spark.SparkContext
+    import org.infinispan.commons.dataconversion.MediaType
+    import org.infinispan.commons.marshall.UTF8StringMarshaller
+    import org.infinispan.spark.config.ConnectorConfiguration
+    import org.infinispan.spark.rdd.InfinispanRDD
+
+    val sc: SparkContext = new SparkContext()
+
+    val config = new ConnectorConfiguration().setCacheName("my-cache").setServerList("10.9.0.8:11222")
+       .setValueMediaType(MediaType.APPLICATION_JSON_TYPE)
+       .setValueMarshaller(classOf[UTF8StringMarshaller])
+
+    // Values will be JSON represented as String
+    val jsonRDD = new InfinispanRDD[String, String](sc, config)
+  }
+
+
   def cacheAdmin(): Unit = {
     import org.apache.spark.SparkContext
     import org.infinispan.spark.config.ConnectorConfiguration

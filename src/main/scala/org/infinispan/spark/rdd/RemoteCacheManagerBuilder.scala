@@ -3,9 +3,9 @@ package org.infinispan.spark.rdd
 import java.net.InetSocketAddress
 import java.util.function.Supplier
 
-import org.infinispan.client.hotrod.{FailoverRequestBalancingStrategy, RemoteCacheManager}
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.marshall.ProtoStreamMarshaller
+import org.infinispan.client.hotrod.{FailoverRequestBalancingStrategy, RemoteCacheManager}
 import org.infinispan.commons.marshall.Marshaller
 import org.infinispan.protostream.annotations.ProtoSchemaBuilder
 import org.infinispan.protostream.{BaseMarshaller, FileDescriptorSource}
@@ -78,8 +78,11 @@ object RemoteCacheManagerBuilder {
       if (protoDescriptors.isEmpty) {
          val protoSchemaBuilder = new ProtoSchemaBuilder
          protoAnnotatedEntities.foreach { e =>
-            val contents = protoSchemaBuilder.fileName(e.getName).addClass(e).build(serCtx)
-            if (autoRegister) metadataCache.put(s"${e.getName}.proto", contents)
+            val fileName = s"${e.getName}.proto"
+            val contents = protoSchemaBuilder.fileName(fileName).addClass(e).build(serCtx)
+            if (autoRegister) {
+               metadataCache.put(fileName, contents)
+            }
          }
       }
       cm

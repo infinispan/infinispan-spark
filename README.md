@@ -64,6 +64,10 @@ addProtoAnnotatedClass(Class) | Registers a Class containing protobuf annotation
 setAutoRegisterProto() | Will cause automatically registration of protobuf schemas in the server. The schema can either be provided by ```addProtoFile()``` or inferred from the annotated classes registered with ```addProtoAnnotatedClass``` | no automatic registration is done
 addHotRodClientProperty(key, value) | Used to configured extra Hot Rod client properties when contacting the Infinispan Server | |
 setTargetEntity(Class) | Used in conjunction with the Dataset API to specify the Query target | If omitted, and in case there is only one class annotated with protobuf configured, it will choose that class
+setKeyMarshaller(Class) | An implementation of ```org.infinispan.commons.marshall.Marshaller``` used to serialize and deserialize the keys | ```org.infinispan.commons.marshall.jboss.GenericJBossMarshaller```
+setValueMarshaller(Class) | Same as ```keyMarshaller``` but for the values | same default as above
+setKeyMediaType(String) | Specify an alternate [Media type](https://en.wikipedia.org/wiki/Media_type) to be used for keys during cache operations. Infinispan will convert the stored keys to this format when reading data. It is recommended to [configure the Media Type](http://infinispan.org/docs/stable/user_guide/user_guide.html#configuration) of the cache when planning to use this property | ```application/x-jboss-marshalling``` or ```application/x-protostream``` when using protofiles and message marshallers
+setValueMediaType(String) | Same as ```keyMediaType``` but for values | same default as above
 
 ##### Connecting to secure servers
 
@@ -529,6 +533,52 @@ List<Row> rows = df.filter(df.col("age").gt(30)).filter(df.col("age").lt(40)).co
 df.createOrReplaceTempView("user");
 String query = "SELECT first(r.name) as name, first(r.age) as age FROM user u GROUP BY r.age";
 List<Row> results = sparkSession.sql(query).collectAsList();
+```
+
+#### Using multiple data formats
+
+##### Java
+
+```java
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.infinispan.commons.dataconversion.MediaType;
+import org.infinispan.commons.marshall.UTF8StringMarshaller;
+import org.infinispan.spark.config.ConnectorConfiguration;
+import org.infinispan.spark.rdd.InfinispanJavaRDD;
+
+
+JavaSparkContext jsc = new JavaSparkContext();
+
+ConnectorConfiguration connectorConfiguration = new ConnectorConfiguration()
+           .setCacheName("exampleCache")
+           .setValueMediaType(MediaType.APPLICATION_JSON_TYPE)
+           .setValueMarshaller(UTF8StringMarshaller.class)
+           .setServerList("server:11222");
+
+JavaPairRDD<String, String> infinispanRDD = InfinispanJavaRDD.createInfinispanRDD(jsc, connectorConfiguration);
+
+JavaRDD<String> jsonRDD = infinispanRDD.values();
+```
+
+##### Scala
+
+```scala
+import org.apache.spark.SparkContext
+import org.infinispan.commons.dataconversion.MediaType
+import org.infinispan.commons.marshall.UTF8StringMarshaller
+import org.infinispan.spark.config.ConnectorConfiguration
+import org.infinispan.spark.rdd.InfinispanRDD
+
+val sc: SparkContext = new SparkContext()
+
+val config = new ConnectorConfiguration().setCacheName("my-cache").setServerList("10.9.0.8:11222")
+    .setValueMediaType(MediaType.APPLICATION_JSON_TYPE)
+    .setValueMarshaller(classOf[UTF8StringMarshaller])
+
+// Values will be JSON represented as String
+val jsonRDD = new InfinispanRDD[String, String](sc, config)
 ```
 
 #### Build instructions
