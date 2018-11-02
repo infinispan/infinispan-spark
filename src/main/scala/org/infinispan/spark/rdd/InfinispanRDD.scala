@@ -32,7 +32,7 @@ class InfinispanRDD[K, V](@transient val sc: SparkContext,
 
    @transient lazy val _cacheAdmin = new CacheAdmin(remoteCacheManager)
 
-   @transient lazy val remoteCache: RemoteCache[K, V] = {
+   @transient lazy val remoteCache: RemoteCache[_, _] = {
       val remoteCacheManager = RemoteCacheManagerBuilder.create(configuration)
       sc.addSparkListener(new SparkListener {
          override def onJobEnd(jobEnd: SparkListenerJobEnd): Unit = remoteCacheManager.stop()

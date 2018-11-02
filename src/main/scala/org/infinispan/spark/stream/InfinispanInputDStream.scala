@@ -6,9 +6,10 @@ import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.dstream.ReceiverInputDStream
 import org.apache.spark.streaming.receiver.Receiver
-import org.infinispan.client.hotrod.RemoteCacheManager
 import org.infinispan.client.hotrod.annotation._
 import org.infinispan.client.hotrod.event.{ClientCacheEntryCustomEvent, ClientEvent}
+import org.infinispan.client.hotrod.{DataFormat, RemoteCache, RemoteCacheManager}
+import org.infinispan.commons.configuration.ClassWhiteList
 import org.infinispan.commons.io.UnsignedNumeric
 import org.infinispan.spark._
 import org.infinispan.spark.config.ConnectorConfiguration
@@ -26,13 +27,14 @@ class InfinispanInputDStream[K, V](@transient val ssc_ : StreamingContext, stora
 private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: ConnectorConfiguration, includeState: Boolean)
   extends Receiver[(K, V, ClientEvent.Type)](storageLevel) {
 
-   @transient private lazy val listener = if (includeState) new EventListenerWithState else new EventListenerWithoutState
+   @transient private lazy val listener = if (includeState) new EventListenerWithState(remoteCache.getDataFormat) else new EventListenerWithoutState(remoteCache.getDataFormat)
 
    @transient private var cacheManager: RemoteCacheManager = _
+   @transient private var remoteCache: RemoteCache[K, V] = _
 
    override def onStart(): Unit = {
       cacheManager = RemoteCacheManagerBuilder.create(configuration)
-      val remoteCache = getCache[K, V](configuration, cacheManager)
+      remoteCache = getCache[K, V](configuration, cacheManager)
       remoteCache.addClientListener(listener)
    }
 
@@ -44,6 +46,8 @@ private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: Co
    }
 
    private sealed trait EventListener {
+
+      var dataFormat: DataFormat
 
       @ClientCacheEntryRemoved
       @ClientCacheEntryExpired
@@ -58,14 +62,14 @@ private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: Co
       }
 
       private def emitEvent(event: ClientCacheEntryCustomEvent[Array[Byte]], ignoreValue: Boolean) = {
-         val marshaller = cacheManager.getMarshaller
          val eventData = event.getEventData
          val rawData = ByteBuffer.wrap(eventData)
          val rawKey = readElement(rawData)
-         val key: K = marshaller.objectFromByteBuffer(rawKey).asInstanceOf[K]
+         val classWhiteList = new ClassWhiteList()
+         val key: K = dataFormat.keyToObj(rawKey, new ClassWhiteList()).asInstanceOf[K]
          val value = if (!ignoreValue) {
             val rawValue = readElement(rawData)
-            marshaller.objectFromByteBuffer(rawValue).asInstanceOf[V]
+            dataFormat.valueToObj(rawValue, classWhiteList).asInstanceOf[V]
          } else null.asInstanceOf[V]
 
          store((key, value, event.getType))
@@ -80,9 +84,9 @@ private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: Co
    }
 
    @ClientListener(converterFactoryName = "___eager-key-value-version-converter", useRawData = true, includeCurrentState = true)
-   private class EventListenerWithState extends EventListener
+   private class EventListenerWithState(var dataFormat: DataFormat) extends EventListener
 
    @ClientListener(converterFactoryName = "___eager-key-value-version-converter", useRawData = true, includeCurrentState = false)
-   private class EventListenerWithoutState extends EventListener
+   private class EventListenerWithoutState(var dataFormat: DataFormat) extends EventListener
 
 }

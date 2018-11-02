@@ -4,6 +4,7 @@ package org.infinispan.spark.config
 import java.util.Properties
 
 import org.infinispan.client.hotrod.impl.ConfigurationProperties._
+import org.infinispan.commons.marshall.Marshaller
 import org.infinispan.protostream.BaseMarshaller
 
 import scala.collection.JavaConversions._
@@ -26,6 +27,10 @@ class ConnectorConfiguration extends Serializable {
    private val hotRodClientProps = new Properties()
    private var autoCreateCacheFromConfig: String = ""
    private var autoCreateCacheFromTemplate: String = ""
+   private var keyMediaType: String = _
+   private var valueMediaType: String = _
+   private var keyMarshaller: Class[_ <: Marshaller] = _
+   private var valueMarshaller: Class[_ <: Marshaller] = _
 
    def setCacheName(cacheName: String): ConnectorConfiguration = {
       this.cacheName = cacheName
@@ -116,6 +121,27 @@ class ConnectorConfiguration extends Serializable {
       this
    }
 
+   def setKeyMediaType(keyMediaType: String): ConnectorConfiguration = {
+      this.keyMediaType = keyMediaType
+      this
+   }
+
+   def setValueMediaType(valueMediaType: String): ConnectorConfiguration = {
+      this.valueMediaType = valueMediaType
+      this
+   }
+
+   def setKeyMarshaller(marshaller: Class[_ <: Marshaller]): ConnectorConfiguration = {
+      this.keyMarshaller = marshaller
+      this
+   }
+
+   def setValueMarshaller(marshaller: Class[_ <: Marshaller]): ConnectorConfiguration = {
+      this.valueMarshaller = marshaller
+      this
+   }
+
+   def hasCustomFormat: Boolean = keyMarshaller != null || valueMarshaller != null || keyMediaType != null || valueMediaType != null
 
    import ConnectorConfiguration._
 
@@ -178,6 +204,14 @@ class ConnectorConfiguration extends Serializable {
 
    def getServerList = getHotRodClientProperties.getProperty(SERVER_LIST)
 
+   def getKeyMediaType: String = keyMediaType
+
+   def getValueMediaType: String = valueMediaType
+
+   def getKeyMarshaller: Class[_ <: Marshaller] = keyMarshaller
+
+   def getValueMarshaller: Class[_ <: Marshaller] = valueMarshaller
+
 }
 
 object ConnectorConfiguration {
@@ -199,6 +233,10 @@ object ConnectorConfiguration {
    val Marshallers = "infinispan.rdd.query.proto.marshallers"
    val RegisterSchemas = "infinispan.rdd.query.proto.autoregister"
    val TargetEntity = "infinispan.dataset.sql.target_entity"
+   val KeyMediaType = "infinispan.rdd.key_media_type"
+   val ValueMediaType = "infinispan.rdd.value_media_type"
+   val KeyMarshaller = "infinispan.rdd.key_marshaller"
+   val ValueMarshaller = "infinispan.rdd.value_marshaller"
 
    private def readSequence[E](s: String, converter: String => E): Seq[E] = s.split(SequenceSeparator).map(converter).toSeq
 
@@ -222,7 +260,10 @@ object ConnectorConfiguration {
       m.get(ProtoEntities).foreach(p => readSequence[Class[_]](p, Class.forName).foreach(config.addProtoAnnotatedClass))
       m.get(RegisterSchemas).foreach(r => if (r.toBoolean) config.setAutoRegisterProto())
       m.get(TargetEntity).foreach(t => config.setTargetEntity(Class.forName(t)))
-
+      m.get(KeyMediaType).foreach(config.setKeyMediaType)
+      m.get(ValueMediaType).foreach(config.setValueMediaType)
+      m.get(KeyMarshaller).foreach(m => config.setKeyMarshaller(Class.forName(m).asInstanceOf[Class[_ <: Marshaller]]))
+      m.get(ValueMarshaller).foreach(m => config.setValueMarshaller(Class.forName(m).asInstanceOf[Class[_ <: Marshaller]]))
       m.keySet.filter(_.startsWith(HotRodClientConfigPrefix)).foreach(k => config.addHotRodClientProperty(k, m(k)))
 
       config

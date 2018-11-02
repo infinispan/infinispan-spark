@@ -24,7 +24,7 @@ object ProjectBuild extends Build {
             moduleName := "infinispan-spark",
             libraryDependencies ++= Seq(sparkCore, sparkStreaming, sparkSQL, sparkHive, hotRodClient, queryDSL, jcip,
                junit, scalaTest, scalaDMR, remoteQueryClient, protoStream,
-               shrinkWrap, infinispanCore, sl4jbridge, log4j),
+              infinispanCommons, shrinkWrap, infinispanCore, sl4jbridge, log4j, uJson),
             downloadServer := {
                val destination = new File(ServerDownloadDir, serverZip)
                if (java.nio.file.Files.notExists(destination.toPath)) {
@@ -102,6 +102,7 @@ object ProjectBuild extends Build {
       test in assembly := {},
       parallelExecution in Test := false,
       testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-u", s"${crossTarget.value.getAbsolutePath}/test-reports/", "-o"),
+     updateOptions := updateOptions.value.withLatestSnapshots(false),
       parallelExecution in Global := false
    )
 

@@ -6,6 +6,7 @@ object Deps {
    val hotRodClient = "org.infinispan" % "infinispan-client-hotrod" % infinispanVersion
    val queryDSL = "org.infinispan" % "infinispan-query-dsl" % infinispanVersion
    val remoteQueryClient = "org.infinispan" % "infinispan-remote-query-client" % infinispanVersion
+   val infinispanCommons = "org.infinispan" % "infinispan-commons" % infinispanVersion
    val protoStream = "org.infinispan.protostream" % "protostream" % protoStreamVersion
    val jcip = "net.jcip" % "jcip-annotations" % jcipAnnotationsVersion
    val sparkCore = "org.apache.spark" %% "spark-core" % sparkVersion % "provided"
@@ -21,6 +22,7 @@ object Deps {
    val infinispanCore = "org.infinispan" % "infinispan-core" % infinispanVersion
    val log4j = "log4j" % "log4j" % log4jVersion % "test"
    val sl4jbridge = "org.slf4j" % "slf4j-log4j12" % sl4jVersion % "test"
+   val uJson = "com.lihaoyi" %% "ujson" % uJsonVersion % "test"
 
    // Demo deps
    val twitterHbc = "com.twitter" % "hbc-core" % twitterHbcVersion
