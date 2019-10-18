@@ -54,7 +54,7 @@ object Publishing {
       homepage := Some(url("http://www.infinispan.org")),
       credentialsSetting,
       publishMavenStyle := true,
-      publishTo <<= isSnapshot { (snapshot) => Some(if (snapshot) snapshotRepo else releaseRepo) },
+      publishTo := Some( if(isSnapshot.value) snapshotRepo else releaseRepo),
       publishArtifact in Test := false,
       pomExtra := scm ++ developer ++ license ++ issues
    )
