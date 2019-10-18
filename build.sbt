@@ -15,6 +15,8 @@ lazy val serverZip = s"infinispan-server-$infinispanVersion.zip"
 lazy val ServerZipURL = s"https://downloads.jboss.org/infinispan/$infinispanVersion/$serverZip"
 lazy val ServerDownloadDir: String = System.getProperty("user.home")
 
+ThisBuild / useCoursier := false
+
 lazy val core = (project in file("."))
   .settings(commonSettings: _ *)
   .settings(Publishing.settings: _*)
