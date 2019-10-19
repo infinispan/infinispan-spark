@@ -13,7 +13,7 @@ object ProjectBuild extends Build {
    lazy val getInfinispanVersion = taskKey[Unit]("Get Infinispan version used")
    lazy val ServerFolder = "infinispan-server"
    lazy val serverZip = s"infinispan-server-$infinispanVersion.zip"
-   lazy val ServerZipURL = s"http://downloads.jboss.org/infinispan/$infinispanVersion/$serverZip"
+   lazy val ServerZipURL = s"https://downloads.jboss.org/infinispan/$infinispanVersion/$serverZip"
    lazy val ServerDownloadDir: String = System.getProperty("user.home")
 
    lazy val core = (project in file("."))
