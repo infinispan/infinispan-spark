@@ -5,7 +5,7 @@ infinispan2:
   image: jboss/infinispan-server:$INFINISPAN_VERSION
   container_name: ispn-2
 sparkMaster:
-  image: gustavonalle/spark:$SPARK_VERSION
+  image: gustavonalle/spark:$SPARK_VERSION-jdk1.8
   container_name: sparkMaster
   ports:
     - "9080:9080"
