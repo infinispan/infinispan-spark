@@ -4,7 +4,7 @@ import java.io._
 import java.nio.ByteBuffer
 
 import org.apache.spark.serializer.{DeserializationStream, SerializationStream, Serializer, SerializerInstance}
-import org.infinispan.commons.marshall.jboss.GenericJBossMarshaller
+import org.infinispan.jboss.marshalling.commons.GenericJBossMarshaller
 
 import scala.reflect.ClassTag
 

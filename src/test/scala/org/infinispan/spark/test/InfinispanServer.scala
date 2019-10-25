@@ -9,13 +9,10 @@ import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.filter.{KeyValueFilterConverterFactory, NamedFactory}
 import org.infinispan.spark.domain.{Person, Runner}
 import org.infinispan.spark.test.TestingUtil.{DefaultDuration, waitForCondition}
-import org.jboss.as.controller.client.helpers.ClientConstants._
-import org.jboss.dmr.repl.{Client, Response}
-import org.jboss.dmr.scala.{ModelNode, _}
 import org.jboss.shrinkwrap.api.ShrinkWrap
-import org.jboss.shrinkwrap.api.asset.StringAsset
 import org.jboss.shrinkwrap.api.exporter.ZipExporter
 import org.jboss.shrinkwrap.api.spec.JavaArchive
+import ujson._
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -24,9 +21,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 import scala.sys.process._
-import scala.util.{Failure, Success, Try}
-import scala.xml.transform.{RewriteRule, RuleTransformer}
-import scala.xml.{Elem, Node, XML}
+import scala.util.{Failure, Try}
 
 /**
  * @author gustavonalle
@@ -37,31 +32,28 @@ object CacheType extends Enumeration {
    val DISTRIBUTED = Value("distributed-cache")
 }
 
-class FilterDef(val factoryClass: Class[_ <: KeyValueFilterConverterFactory[_, _, _]], val moduleDeps: Seq[String] = Seq(), val classes: Seq[Class[_]]) {
+class FilterDef(val factoryClass: Class[_ <: KeyValueFilterConverterFactory[_, _, _]], val classes: Seq[Class[_]]) {
    val name = factoryClass.getAnnotation(classOf[NamedFactory]).name()
    val allClasses = classes :+ factoryClass
 }
 
-class EntityDef(val classes: Seq[Class[_]], val moduleDeps: Seq[String], val jarName: String)
+class EntityDef(val classes: Seq[Class[_]], val jarName: String)
 
 object TestEntities extends EntityDef(
-   Seq(classOf[Runner], classOf[org.infinispan.spark.domain.Address], classOf[Person]),
-   Seq("org.infinispan.commons", "org.infinispan.protostream"),
-   jarName = "entities.jar") {
-
+   Seq(classOf[Runner], classOf[org.infinispan.spark.domain.Address], classOf[Person]), jarName = "entities.jar") {
    val moduleName = "deployment." + jarName
 }
 
 /**
  * A cluster of Infinispan Servers that can be managed together
  */
-private[test] class Cluster(size: Int, location: String) {
+private[test] class Cluster(size: Int, location: String, cacheContainer: String) {
    private val _servers = mutable.ListBuffer[InfinispanServer]()
    private val _failed_servers = mutable.ListBuffer[InfinispanServer]()
-   val CacheContainer = "clustered"
-   val ServerConfig = "clustered.xml"
+   val ServerConfig = "infinispan.xml"
    @volatile private var started = false
    var entities: Option[EntityDef] = None
+   var filters = ListBuffer[FilterDef]()
 
    Runtime.getRuntime.addShutdownHook(new Thread {
       override def run(): Unit = Try(shutDown())
@@ -69,13 +61,16 @@ private[test] class Cluster(size: Int, location: String) {
 
    def addEntities(entities: EntityDef): Unit = this.entities = Some(entities)
 
+   def addFilter(filter: FilterDef): Unit = this.filters += filter
+
    private def startServers(servers: Seq[InfinispanServer], timeOut: Duration): Unit = {
       import scala.concurrent.blocking
       val futureServers = servers.map { s =>
          entities.foreach(s.addEntities)
+         filters.foreach(s.addFilter)
          Future {
             blocking {
-               s.startAndWaitForCluster(ServerConfig, _servers.size + servers.size, timeOut)
+               s.startAndWaitForCluster(ServerConfig, cacheContainer, _servers.size + servers.size, timeOut)
             }
          }
       }
@@ -91,9 +86,8 @@ private[test] class Cluster(size: Int, location: String) {
       Await.result(Future {
          servers.foreach { s =>
             entities.foreach(s.addEntities)
-            s.startAndWaitForCacheManager(ServerConfig, "clustered")
+            s.startAndWaitForCacheManager(ServerConfig, _servers.size + servers.size, cacheContainer)
          }
-         servers.foreach(_.waitForNumberOfMembers( _servers.size + servers.size, timeOut))
       }, timeOut)
    }
 
@@ -101,7 +95,7 @@ private[test] class Cluster(size: Int, location: String) {
 
    def startAndWait(duration: Duration, parallel: Boolean = true) = {
       val servers = for (i <- 0 until size) yield {
-         new InfinispanServer(location, s"server$i", clustered = true, i * 1000)
+         new InfinispanServer(location, s"server$i", clustered = true, false, cacheContainer, i * 1000)
       }
       if (parallel) startServers(servers, duration) else startSequential(servers, duration)
       _servers ++= servers
@@ -128,13 +122,11 @@ private[test] class Cluster(size: Int, location: String) {
 
    def getFirstServer = _servers.head
 
-   def createCache[K, V](name: String, cacheType: CacheType.Value, extraConfigs: Option[ModelNode]): Unit = {
-      _servers.foreach(_.addCache(CacheContainer, name, cacheType, extraConfigs))
+   def createCache[K, V](name: String, extraConfigs: Option[String]): Unit = {
+      _servers.foreach(_.addCache(name, extraConfigs))
    }
 
    def getServerList = _servers.map(s => s"localhost:${s.getHotRodPort}").mkString(";")
-
-   def addFilter(f: FilterDef) = _servers.foreach(_.addFilter(f))
 
    def removeFilter(f: FilterDef) = _servers.head.removeFilter(f)
 
@@ -143,22 +135,20 @@ private[test] class Cluster(size: Int, location: String) {
 /**
  * A remote infinispan server controlled by issuing native management operations
  */
-private[test] class InfinispanServer(location: String, name: String, clustered: Boolean = false, portOffSet: Int = 0) {
+private[test] class InfinispanServer(location: String, name: String, clustered: Boolean = false, encrypted: Boolean, cacheContainer: String,
+                                     portOffSet: Int = 0) {
    val BinFolder = "bin"
-   val DeploymentFolder = "standalone/deployments"
-   val DefaultConfigFolder = "standalone/configuration"
-   val LaunchScript = "standalone.sh"
-   val NameNodeConfig = "-Djboss.node.name"
-   val LogDirConfig = "-Djboss.server.log.dir"
-   val PortOffsetConfig = "-Djboss.socket.binding.port-offset"
-   val StackConfig = "-Djboss.default.jgroups.stack=tcp"
+   val DeploymentFolder = "lib"
+   val DefaultConfigFolder = "server/conf"
+   val LaunchScript = "server.sh"
+   val NameNodeConfig = "-Dinfinispan.node.name"
+   val LogDirConfig = "-Dinfinispan.server.log.path"
+   val PortOffsetConfig = "-Dinfinispan.socket.binding.port-offset"
+   val StackConfig = "-Dinfinispan.cluster.stack=tcp"
    val PreferIpv4Config = "-Djava.net.preferIPv4Stack=true"
-   val DataDir = "-Djboss.server.data.dir"
-   val InfinispanSubsystem = "datagrid-infinispan"
+   val DataDir = "-Dinfinispan.server.data.path"
    val Host = "localhost"
-   val ShutDownOp = "shutdown"
-   val ManagementPort = 9990
-   val HotRodPort = 11222
+   val Port = 11222
    val baseDebugPort = 8787
    @volatile private var started = false
 
@@ -169,18 +159,23 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
          case Some(c) => c
       }
    }
-   val client = new Client()
 
-   val DefaultCacheConfig = Map(
-      "statistics" -> "true",
-      "start" -> "eager",
-      "template" -> "false",
-      "owners" -> "2"
-   )
+   def getDefaultCacheConfig(cacheType: CacheType.Value) = {
+      val key = cacheType.toString
+      val config = Js.Obj(key -> Js.Obj("template" -> false, "statistics" -> true, "start" -> "eager"))
+      if (!(cacheType == CacheType.LOCAL)) {
+         val body = config(key).obj
+         body += ("owners" -> Js.Num(2))
+         body += ("mode" -> Js.Str("SYNC"))
+      }
+      config.toString()
+   }
 
    lazy val remoteCacheManager = new RemoteCacheManager(new ConfigurationBuilder().addServer().host(Host).port(getHotRodPort).build)
 
    private var launcher: Process = _
+
+   lazy val client = InfinispanClient(Port + portOffSet, encrypted)
 
    Runtime.getRuntime.addShutdownHook(new Thread {
       override def run(): Unit = Try(shutDown())
@@ -207,7 +202,10 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
          cmd += s"${baseDebugPort + portOffSet}"
       }
       val serverConfig = copyConfig(config)
-      cmd += s"-c=$serverConfig"
+      val configFile = Paths.get(serverHome, DefaultConfigFolder, serverConfig).toFile
+      XMLUtils.addCacheTemplate(cacheContainer, configFile)
+      cmd += "-c"
+      cmd += serverConfig
       setTrace(serverConfig, infinispanTrace)
       if (clustered) {
          cmd += StackConfig
@@ -223,270 +221,76 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       launcher = Process(cmd).run(new ProcessLogger {
          override def out(s: => String): Unit = {}
 
-         override def err(s: => String): Unit = {
-            println(s)
-         }
+         override def err(s: => String): Unit = println(s)
 
          override def buffer[T](f: => T): T = f
       })
-      client.connect(port = getManagementPort)
       started = true
    }
 
    def isStarted = started
 
-   def startAndWaitForCluster(config: String, size: Int, duration: Duration) = {
+   def startAndWaitForCluster(config: String, cacheManager: String, size: Int, duration: Duration) = {
       start(config)
-      waitForCacheManager("clustered")
-      waitForNumberOfMembers(size, duration)
+      waitForCacheManager(cacheManager, size, duration)
    }
 
-   def startAndWaitForCacheManager(config: String, name: String) = {
+   def startAndWaitForCacheManager(config: String, members: Int, name: String) = {
       start(config)
-      waitForCacheManager(name)
+      waitForCacheManager(name, members, DefaultDuration)
    }
 
    def shutDown(): Unit = {
-      val res = client ! ModelNode(OP -> ShutDownOp)
-      if (res.isFailure) {
-         throw new Exception(s"Failure to stop server $name")
-      }
-      client.close()
+      client.shutdown()
       launcher.exitValue()
       launcher.destroy()
       started = false
    }
 
-   private[this] object ModelNodeResult {
+   def getHotRodPort = if (portOffSet == 0) Port else Port + portOffSet
 
-      trait ModelNodeResult[T] {
-         def getValue(mn: ModelNode): Option[T]
-      }
+   def waitForCacheManager(cacheManager: String, members: Int, duration: Duration) = waitForCondition(() => client.isHealthy(cacheManager, members), duration)
 
-      implicit object ModelNodeResultString extends ModelNodeResult[String] {
-         override def getValue(mn: ModelNode) = mn.asString
-      }
-
-      implicit object ModelNodeResultInt extends ModelNodeResult[Int] {
-         override def getValue(mn: ModelNode) = mn.asInt
-      }
-
-      implicit object ModelNodeResultBoolean extends ModelNodeResult[Boolean] {
-         override def getValue(mn: ModelNode) = mn.asBoolean
-      }
-
-      implicit object ModelNodeResultUnit extends ModelNodeResult[Unit] {
-         override def getValue(mn: ModelNode) = None
-      }
-
-   }
-
-   import ModelNodeResult._
-
-   def getHotRodPort = if (portOffSet == 0) HotRodPort else HotRodPort + portOffSet
-
-   private def getManagementPort = if (portOffSet == 0) ManagementPort else ManagementPort + portOffSet
-
-   def waitForNumberOfMembers(members: Int, duration: Duration = DefaultDuration): Unit =
-      waitForServerOperationResult[Int](ModelNode() at ("subsystem" -> InfinispanSubsystem) / ("cache-container" -> "clustered") op 'read_attribute ('name -> "cluster-size"), _ == members, duration)
-
-   def waitForCacheManager(name: String): Unit =
-      waitForServerOperationResult[String](ModelNode() at ("subsystem" -> InfinispanSubsystem) / ("cache-container" -> name) op 'read_attribute ('name -> "cache-manager-status"), _ == "RUNNING")
-
-   def addLocalCache(cacheName: String, config: Option[ModelNode]) = {
-      addCache("local", cacheName, CacheType.LOCAL, config)
-   }
-
-   def cacheExists(name: String, cacheContainer: String, cacheType: CacheType.Value): Boolean = {
-      val op = ModelNode() at ("subsystem" -> InfinispanSubsystem) / ("cache-container" -> cacheContainer) op 'read_attribute (
-         'name -> "defined-cache-names"
-      )
-      val caches = executeOperation[String](op)
-      caches.exists(_.contains(name))
-   }
-
-   def addCache(cacheContainer: String, cacheName: String, cacheType: CacheType.Value, config: Option[ModelNode]): Unit = {
-      if (!cacheExists(cacheName, cacheContainer, cacheType)) {
-         val params = if (cacheType != CacheType.LOCAL)
-            createAddOpWithAttributes(DefaultCacheConfig + ("mode" -> "SYNC"))
-         else
-            createAddOpWithAttributes(DefaultCacheConfig)
-
-         val cacheContainerPath = ("subsystem" -> InfinispanSubsystem) / ("cache-container" -> cacheContainer)
-         val configPath = cacheContainerPath / ("configurations" -> "CONFIGURATIONS") / (s"$cacheType-configuration" -> s"$cacheName")
-
-         // Create empty cache configuration
-         val ops = ListBuffer(ModelNode() at configPath op params)
-
-         // Add custom config
-         config.foreach(ops += createInsertOperations(configPath, _))
-
-         // Create cache based on configuration
-         ops += ModelNode() at cacheContainerPath / (cacheType.toString -> cacheName) op 'add ('configuration -> s"$cacheName")
-
-         executeOperation[Unit](ModelNode.composite(ops))
-      }
-   }
+   def addCache(cacheName: String, config: Option[String]) = client.createCache(cacheName, config.getOrElse(getDefaultCacheConfig(CacheType.DISTRIBUTED)))
 
    def deployArchive(archive: JavaArchive, waitDeployment: Boolean = true) = {
       archive.as(classOf[ZipExporter]).exportTo(Paths.get(serverHome, DeploymentFolder, archive.getName).toFile, true)
-      if (waitDeployment) {
-         waitForServerOperationResult[Boolean](
-            ModelNode() at ("deployment" -> archive.getName) op 'read_attribute (
-               'name -> "enabled"), _ == true
-         )
-      }
    }
 
    def undeployArchive(name: String) = Paths.get(serverHome, DeploymentFolder, name).toFile.delete()
 
    def addFilter(filterDef: FilterDef) = {
       deployArchive(ShrinkWrap
-         .create(classOf[JavaArchive], s"${filterDef.name}.jar")
-         .addClasses(filterDef.allClasses: _*)
-         .setManifest(new StringAsset(s"Dependencies: ${filterDef.moduleDeps.mkString(",")}"))
-         .addAsServiceProvider(classOf[KeyValueFilterConverterFactory[_, _, _]], filterDef.factoryClass))
+        .create(classOf[JavaArchive], s"${filterDef.name}.jar")
+        .addClasses(filterDef.allClasses: _*)
+        .addAsServiceProvider(classOf[KeyValueFilterConverterFactory[_, _, _]], filterDef.factoryClass))
    }
 
 
    def setTrace(configFile: String, categories: Option[String]): Unit = {
-      def asLogger(category: String) =
-         <logger category={category}>
-            <level name="TRACE"/>
-         </logger>
-
-      lazy val path = Paths.get(serverHome, DefaultConfigFolder, configFile)
-      lazy val elementFilter: Node => Boolean = n => n.namespace == "urn:jboss:domain:logging:3.0" && n.label == "subsystem"
-      categories.foreach(c => {
-         c.split(",").map(asLogger).foreach(logger => {
-            val xmlFile = XML.loadFile(path.toFile)
-            val newXML = addChildToNode(xmlFile, elementFilter, logger)
-            XML.save(path.toFile.getAbsolutePath, newXML, "UTF-8")
-         })
-      })
-   }
-
-   def addChildToNode(element: Node, filter: Node => Boolean, elementToAdd: Node) = {
-      object Rule extends RewriteRule {
-         override def transform(n: Node): Seq[Node] = n match {
-            case e@Elem(prefix, en, att, scope, child@_*) if filter.apply(e) =>
-               Elem(prefix, en, att, scope, child.isEmpty, elementToAdd ++ child: _*)
-            case other => other
-         }
-      }
-      object Transform extends RuleTransformer(Rule)
-      Transform(element)
+      //TODO
    }
 
    def addEntities(entities: EntityDef): Unit = {
-      val cacheManagerName = if (clustered) "clustered" else "local"
-      val configName = if (clustered) "clustered.xml" else "standalone.xml"
-      val configFile = Paths.get(serverHome, DefaultConfigFolder, configName).toFile
-      val xmlFile = XML.loadFile(configFile)
-      val exists = ((xmlFile \\ "cache-container").filter(n => n.attributes.asAttrMap.exists { case (k, v) => k.equals("name") && v.equals(cacheManagerName) } ) \ "modules" \ "module" \ "@name" text) == TestEntities.moduleName
-
-      val moduleConfig = <modules>
-         <module name={TestEntities.moduleName}/>
-      </modules>
-
-      def addChildToNode(element: Node, elementName: String, attributeName: String, attributeValue: String, elementToAdd: Node) = {
-         object Rule extends RewriteRule {
-            override def transform(n: Node): Seq[Node] = n match {
-               case Elem(prefix, en, att, scope, child@_*)
-                  if en == elementName && att.asAttrMap.exists(t => t._1 == attributeName && t._2 == attributeValue) =>
-                  Elem(prefix, en, att, scope, child.isEmpty, elementToAdd ++ child: _*)
-               case other => other
-            }
-         }
-         object Transform extends RuleTransformer(Rule)
-         Transform(element)
-      }
-
-      def addModuleDepToCacheManager(moduleName: String, cacheManagerName: String) = {
-         val newXML = addChildToNode(xmlFile, "cache-container", "name", cacheManagerName,
-            moduleConfig)
-         XML.save(configFile.getAbsolutePath, newXML, "UTF-8")
-      }
-
-      if (entities.classes.nonEmpty && !exists) {
-         deployArchive(ShrinkWrap.create(classOf[JavaArchive], entities.jarName)
-            .setManifest(new StringAsset(s"Dependencies: ${entities.moduleDeps.mkString(",")}"))
-            .addClasses(entities.classes: _*),
-            waitDeployment = false)
-         addModuleDepToCacheManager(TestEntities.moduleName, cacheManagerName)
+      if (entities.classes.nonEmpty) {
+         deployArchive(
+            ShrinkWrap.create(classOf[JavaArchive], entities.jarName)
+              .addClasses(entities.classes: _*), waitDeployment = false
+         )
       }
    }
 
    def removeFilter(filterDef: FilterDef) = undeployArchive(s"${filterDef.name}.jar")
 
-   private def toParam(m: Map[String, Any]) = m.toArray.map { case (k, v) => (Symbol(k), v) }
-
-   private def createAddOpWithAttributes(m: Map[String, Any]): Operation = Operation('add)(toParam(m): _*)
-
-   // Create optimal number of ops to add a model node to a specific path
-   private def createInsertOperations(basePath: Address, modelNode: ModelNode): ModelNode = {
-      val opsByPath = mutable.LinkedHashMap[ListBuffer[String], mutable.Map[String, Any]]()
-
-      def process(n: ModelNode, path: ListBuffer[String]): Unit = {
-         n.keys.foreach { k =>
-            n(k) match {
-               case v: ComplexModelNode => process(v, path :+ k)
-               case v: ValueModelNode => opsByPath.getOrElseUpdate(path, mutable.Map()) += (k -> v)
-            }
-         }
-      }
-
-      process(modelNode, ListBuffer())
-      val operations = opsByPath flatMap { case (path, attributes) =>
-         val addOperation = createAddOpWithAttributes(attributes.toMap)
-         val insertionPath = basePath
-         if (path.isEmpty) {
-            // Simple attribute of the cache
-            attributes.map { case (attrName, attrValue) =>
-               ModelNode() at insertionPath op 'write_attribute (
-                  'name -> attrName,
-                  'value -> attrValue
-               )
-            }
-         } else if (path.size == 1) {
-            // ModelNode attribute of the cache
-            List(ModelNode() at insertionPath op 'write_attribute (
-               'name -> path.head,
-               'value -> modelNode(path.head)
-            ))
-         } else {
-            // Nested model node inside the cache
-            var nestedPath = insertionPath
-            path.grouped(2).foreach(ar => nestedPath = nestedPath / (ar.head -> ar(1)))
-            List(ModelNode() at nestedPath op addOperation)
-         }
-      }
-      ModelNode.composite(operations)
-   }
-
-   private def executeOperation[T](op: ModelNode)(implicit ev: ModelNodeResult[T]): Option[T] = {
-      client ! op match {
-         case Success(node) =>
-            node match {
-               case Response(Response.Success, result) => ev.getValue(result)
-               case Response(Response.Failure, failure) => throw new RuntimeException(s"Error executing operation $op: $failure")
-            }
-         case Failure(failure) => throw new RuntimeException(s"Error executing operation $op.toString", failure)
-      }
-   }
-
-   private def waitForServerOperationResult[T](operation: ModelNode, condition: T => Boolean, duration: Duration = DefaultDuration)(implicit ev: ModelNodeResult[T]): Unit = {
-      waitForCondition(() => {
-         val result = executeOperation[T](operation)(ev)
-         result.exists(condition)
-      }, duration)
-   }
 }
 
 sealed trait SingleNode {
    val ServerPath: String = "/infinispan-server/"
+   val cacheContainer = "default"
 
-   val server: InfinispanServer = new InfinispanServer(ServerPath, "standalone")
+   def isEncrypted: Boolean
+
+   lazy val server: InfinispanServer = new InfinispanServer(ServerPath, "standalone", clustered = false, isEncrypted, cacheContainer)
 
    def getConfigFile: String
 
@@ -495,9 +299,11 @@ sealed trait SingleNode {
       start(getConfigFile)
    }
 
-   private def start(config: String) = if (!server.isStarted) server.startAndWaitForCacheManager(config, "local")
+   private def start(config: String) = if (!server.isStarted) server.startAndWaitForCacheManager(config, 1, cacheContainer)
 
-   def beforeStart(): Unit = server.addEntities(TestEntities)
+   def beforeStart(): Unit = {
+      server.addEntities(TestEntities)
+   }
 
    def afterShutDown(): Unit = {}
 
@@ -509,17 +315,20 @@ sealed trait SingleNode {
 
    def getServerPort = server.getHotRodPort
 
-   def createCache(name: String, config: Option[ModelNode]) = server.addLocalCache(name, config)
+   def createCache(name: String, config: Option[String]) = server.addCache(name, config)
 
 }
 
 object SingleStandardNode extends SingleNode {
-   override def getConfigFile = "standalone.xml"
+   override def getConfigFile = "infinispan.xml"
+
+   override def isEncrypted = false
 }
 
 object SingleSecureNode extends SingleNode {
+   override def getConfigFile = "infinispan-secure.xml"
 
-   override def getConfigFile = "../../docs/examples/configs/standalone-hotrod-ssl.xml"
+   override def isEncrypted = true
 
    val extraFiles: Seq[java.nio.file.Path] = Seq(toPath("/keystore_server.jks"), toPath("/ca.jks"))
 
@@ -527,7 +336,10 @@ object SingleSecureNode extends SingleNode {
 
    override def beforeStart() = {
       super.beforeStart()
-      val serverConfig = Paths.get(getClass.getResource(ServerPath).getPath, "/standalone/configuration")
+      val resource = getClass.getClassLoader.getResource(getConfigFile)
+      val f = Paths.get(resource.toURI)
+      val serverConfig = Paths.get(getClass.getResource(ServerPath).getPath, "server", "conf")
+      Files.copy(f, serverConfig.resolve(getConfigFile), REPLACE_EXISTING)
       extraFiles.foreach(f => Files.copy(f, serverConfig.resolve(f.getFileName), REPLACE_EXISTING))
    }
 }
@@ -536,11 +348,13 @@ object Cluster {
    val NumberOfServers = 3
    val ServerPath = "/infinispan-server/"
    val StartTimeout = 200 seconds
+   val CacheContainer = "default"
 
-   private val cluster: Cluster = new Cluster(NumberOfServers, ServerPath)
+   private val cluster: Cluster = new Cluster(NumberOfServers, ServerPath, CacheContainer)
 
    def start() = if (!cluster.isStarted) {
       cluster.addEntities(TestEntities)
+      FilterDefs.list.foreach(cluster.addFilter)
       cluster.startAndWait(StartTimeout)
    }
 
@@ -554,7 +368,7 @@ object Cluster {
 
    def restore() = cluster.restoreFailed(StartTimeout)
 
-   def createCache(name: String, cacheType: CacheType.Value, config: Option[ModelNode]) = cluster.createCache(name, cacheType, config)
+   def createCache(name: String, config: Option[String]) = cluster.createCache(name, config)
 
    def getFirstServerPort = cluster.getFirstServer.getHotRodPort
 

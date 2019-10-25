@@ -71,8 +71,6 @@ class CacheLifecycleSuite extends FunSuite with RunnersCache with Spark with Mul
          <infinispan>
             <cache-container>
                <replicated-cache name="myCache">
-                  <eviction size="-1" strategy="NONE"/>
-                  <expiration max-idle="-1"/>
                   <indexing index="NONE"/>
                </replicated-cache>
             </cache-container>
@@ -86,7 +84,7 @@ class CacheLifecycleSuite extends FunSuite with RunnersCache with Spark with Mul
    }
 
    test("Auto create caches from template") {
-      val cfg = getConfiguration.setCacheName("pokemon").setAutoCreateCacheFromTemplate("memory-bounded")
+      val cfg = getConfiguration.setCacheName("pokemon").setAutoCreateCacheFromTemplate("replicated")
 
       val rdd = new InfinispanRDD[String, String](sc, configuration = cfg)
 

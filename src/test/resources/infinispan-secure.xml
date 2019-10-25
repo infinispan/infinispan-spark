@@ -1,0 +1,38 @@
+<infinispan xsi:schemaLocation="urn:infinispan:config:10.0 http://www.infinispan.org/schemas/infinispan-config-10.0.xsd urn:infinispan:server:10.0 http://www.infinispan.org/schemas/infinispan-server-10.0.xsd"
+        xmlns:server="urn:infinispan:server:10.0" xmlns="urn:infinispan:config:10.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <cache-container name="default">
+    <transport stack="${infinispan.cluster.stack:tcp}" cluster="${infinispan.cluster.name}"/>
+  </cache-container>
+
+  <server xmlns="urn:infinispan:server:10.0">
+    <interfaces>
+      <interface name="public">
+        <inet-address value="${infinispan.bind.address:127.0.0.1}"/>
+      </interface>
+    </interfaces>
+
+    <socket-bindings port-offset="${infinispan.socket.binding.port-offset:0}" default-interface="public">
+      <socket-binding port="${infinispan.bind.port:11222}" name="default"/>
+      <socket-binding port="11221" name="memcached"/>
+    </socket-bindings>
+
+    <security>
+      <security-realms>
+        <security-realm name="default">
+          <server-identities>
+            <ssl>
+              <keystore path="keystore_server.jks" relative-to="infinispan.server.config.path"
+                        keystore-password="secret" alias="hotrod"/>
+            </ssl>
+          </server-identities>
+        </security-realm>
+      </security-realms>
+    </security>
+    <endpoints security-realm="default" socket-binding="default">
+      <hotrod-connector name="hotrod"/>
+      <rest-connector name="rest"/>
+    </endpoints>
+  </server>
+</infinispan>

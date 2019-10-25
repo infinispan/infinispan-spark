@@ -4,14 +4,13 @@ import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
 import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.rdd.RemoteCacheManagerBuilder
-import org.jboss.dmr.scala.ModelNode
 import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Suite}
 
 /**
-  * Trait to be mixed-in by tests that require a reference to a RemoteCache
-  *
-  * @author gustavonalle
-  */
+ * Trait to be mixed-in by tests that require a reference to a RemoteCache
+ *
+ * @author gustavonalle
+ */
 sealed trait RemoteTest {
 
    protected def getRemoteCache[K, V]: RemoteCache[K, V] = remoteCacheManager.getCache(getCacheName)
@@ -20,11 +19,9 @@ sealed trait RemoteTest {
 
    def getCacheName: String = getClass.getName
 
-   def getCacheConfig: Option[ModelNode] = None
+   def getCacheConfig: Option[String] = None
 
    def getServerPort: Int
-
-   def withFilters(): List[FilterDef] = List.empty
 
    def getConfiguration = {
       val config = new ConnectorConfiguration()
@@ -35,8 +32,8 @@ sealed trait RemoteTest {
 }
 
 /**
-  * Traits to be mixed-in for a single server with a custom cache
-  */
+ * Traits to be mixed-in for a single server with a custom cache
+ */
 @DoNotDiscover
 trait SingleServer extends RemoteTest with BeforeAndAfterAll {
    this: Suite =>
@@ -47,14 +44,12 @@ trait SingleServer extends RemoteTest with BeforeAndAfterAll {
 
    override protected def beforeAll(): Unit = {
       node.start()
-      withFilters().foreach(node.addFilter)
       node.createCache(getCacheName, getCacheConfig)
       getRemoteCache.clear()
       super.beforeAll()
    }
 
    override protected def afterAll(): Unit = {
-      withFilters().foreach(node.removeFilter)
       super.afterAll()
    }
 }
@@ -110,14 +105,12 @@ trait MultipleServers extends RemoteTest with BeforeAndAfterAll {
 
    override protected def beforeAll(): Unit = {
       Cluster.start()
-      withFilters().foreach(Cluster.addFilter)
-      Cluster.createCache(getCacheName, getCacheType, getCacheConfig)
+      Cluster.createCache(getCacheName, getCacheConfig)
       getRemoteCache.clear()
       super.beforeAll()
    }
 
    override protected def afterAll(): Unit = {
-      withFilters().foreach(Cluster.removeFilter)
       super.afterAll()
    }
 }

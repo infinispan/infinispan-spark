@@ -4,12 +4,12 @@ package org.infinispan.spark.domain;
 import java.io.Serializable;
 
 import org.infinispan.protostream.annotations.ProtoField;
-import org.infinispan.protostream.annotations.ProtoMessage;
+import org.infinispan.protostream.annotations.ProtoName;
 
 /**
  * @author gustavonalle
  */
-@ProtoMessage(name = "runner")
+@ProtoName("runner")
 public class Runner implements Serializable {
 
    private String name;
