@@ -7,7 +7,6 @@ import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
 import org.infinispan.filter.{AbstractKeyValueFilterConverter, KeyValueFilterConverterFactory, NamedFactory}
 import org.infinispan.metadata.Metadata
 import org.infinispan.spark.domain._
-import org.jboss.dmr.scala.ModelNode
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -20,7 +19,7 @@ import scala.language.postfixOps
 object ClusterSample {
    def main(args: Array[String]) {
 
-      if(args.isEmpty) {
+      if (args.isEmpty) {
          println("Usage: ClusterSample /path/to/server")
          sys.exit(1)
       }
@@ -36,61 +35,64 @@ object ClusterSample {
          }
 
       }
+      val cacheConfig =
+         """
+           |{
+           |    "distributed-cache":{
+           |        "mode":"SYNC",
+           |        "segments":2,
+           |        "statistics":true,
+           |        "expiration":{
+           |            "max-idle":100000,
+           |            "interval":5000,
+           |            "lifespan":20000
+           |        },
+           |        "encoding":{
+           |            "key":{
+           |                "media-type":"application/x-java-object"
+           |            },
+           |            "value":{
+           |                "media-type":"application/x-java-object"
+           |            }
+           |        },
+           |        "file-store":{
+           |            "path":"path",
+           |            "relative-to":"jboss.server.temp.dir",
+           |            "shared":false,
+           |            "fetch-state":false,
+           |            "preload":true,
+           |            "purge":false,
+           |            "write-behind":{
+           |                "modification-queue-size":2048,
+           |                "thread-pool-size":1
+           |            }
+           |        }
+           |    }
+           |}
+           |""".stripMargin
 
-      val cacheConfig = ModelNode(
-         "expiration" -> ModelNode(
-            "EXPIRATION" -> ModelNode(
-               "interval" -> 10000,
-               "lifespan" -> 20000,
-               "max-idle" -> 30000
-            )
-         ),
-         "compatibility" -> ModelNode(
-            "COMPATIBILITY" -> ModelNode(
-               "enabled" -> false
-            )
-         ),
-          "file-store" -> ModelNode(
-            "FILE_STORE" -> ModelNode(
-               "fetch-state" -> false,
-               "passivation" -> false,
-               "preload" -> true,
-               "purge" -> false,
-               "write-behind" -> ModelNode(
-                  "WRITE_BEHIND" -> ModelNode(
-                     "flush-lock-timeout" -> 2,
-                     "modification-queue-size" -> 2048,
-                     "shutdown-timeout" -> 20000,
-                     "thread-pool-size" -> 1
-                  )
-               )
-            )
-         ))
-
-      val cluster = new Cluster(size = 3, location = serverLocation)
+      val cluster = new Cluster(size = 3, location = serverLocation, cacheContainer = "default")
 
       cluster.addEntities(
-         new EntityDef(
-            Seq(classOf[Person], classOf[Runner], classOf[Address]),
-            Seq("org.infinispan.commons", "org.infinispan.protostream"),
-            "my-entities.jar")
+         new EntityDef(Seq(classOf[Person], classOf[Runner], classOf[Address]), "my-entities.jar")
       )
-
-      cluster.startAndWait(20 seconds)
 
       val filterDef = new FilterDef(
          classOf[SampleFilterFactory],
-         Seq(TestEntities.moduleName),
          Seq(classOf[SampleFilterFactory#SampleFilter])
       )
 
       cluster addFilter filterDef
 
-      cluster.createCache[Int,Runner]("my-test-cache", CacheType.DISTRIBUTED, Some(cacheConfig))
+      cluster.startAndWait(20 seconds)
+
+      cluster.createCache[Int, Runner]("my-test-cache", Some(cacheConfig))
 
       val builder = new ConfigurationBuilder().addServer().host("localhost").port(cluster.getFirstServer.getHotRodPort).build
 
-      val cache: RemoteCache[Int,Runner] = new RemoteCacheManager(builder).getCache("my-test-cache")
+      val manager = new RemoteCacheManager(builder)
+
+      val cache: RemoteCache[Int, Runner] = manager.getCache("my-test-cache")
 
       cache.put(1, new Runner("Runner1", true, 3600, 34))
       assert(cache.size() == 1)
@@ -99,6 +101,8 @@ object ClusterSample {
       assert(converted == "Runner1")
 
       cluster removeFilter filterDef
+
+      manager.stop();
 
       cluster.shutDown()
    }

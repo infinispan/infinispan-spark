@@ -4,11 +4,11 @@ import java.net.InetSocketAddress
 import java.util.function.Supplier
 
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
-import org.infinispan.client.hotrod.marshall.ProtoStreamMarshaller
+import org.infinispan.client.hotrod.marshall.MarshallerUtil
 import org.infinispan.client.hotrod.{FailoverRequestBalancingStrategy, RemoteCacheManager}
-import org.infinispan.commons.marshall.Marshaller
+import org.infinispan.commons.marshall.{Marshaller, ProtoStreamMarshaller}
+import org.infinispan.protostream.FileDescriptorSource
 import org.infinispan.protostream.annotations.ProtoSchemaBuilder
-import org.infinispan.protostream.{BaseMarshaller, FileDescriptorSource}
 import org.infinispan.query.remote.client.ProtobufMetadataManagerConstants
 import org.infinispan.spark.config.ConnectorConfiguration
 
@@ -62,7 +62,7 @@ object RemoteCacheManagerBuilder {
          }
          fileDescriptorSource
       }
-      val serCtx = ProtoStreamMarshaller.getSerializationContext(cm)
+      val serCtx = MarshallerUtil.getSerializationContext(cm)
 
       val protoDescriptors = cfg.getProtoFiles
       val marshallers = cfg.getMarshallers
@@ -73,7 +73,7 @@ object RemoteCacheManagerBuilder {
       }
       serCtx.registerProtoFiles(descriptorSource)
 
-      marshallers.foreach { c => serCtx.registerMarshaller(c.newInstance().asInstanceOf[BaseMarshaller[_]]) }
+      marshallers.foreach { c => serCtx.registerMarshaller(c.newInstance()) }
 
       if (protoDescriptors.isEmpty) {
          val protoSchemaBuilder = new ProtoSchemaBuilder

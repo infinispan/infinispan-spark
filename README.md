@@ -65,7 +65,7 @@ addProtoAnnotatedClass(Class) | Registers a Class containing protobuf annotation
 setAutoRegisterProto() | Will cause automatically registration of protobuf schemas in the server. The schema can either be provided by ```addProtoFile()``` or inferred from the annotated classes registered with ```addProtoAnnotatedClass``` | no automatic registration is done
 addHotRodClientProperty(key, value) | Used to configured extra Hot Rod client properties when contacting the Infinispan Server | |
 setTargetEntity(Class) | Used in conjunction with the Dataset API to specify the Query target | If omitted, and in case there is only one class annotated with protobuf configured, it will choose that class
-setKeyMarshaller(Class) | An implementation of ```org.infinispan.commons.marshall.Marshaller``` used to serialize and deserialize the keys | ```org.infinispan.commons.marshall.jboss.GenericJBossMarshaller```
+setKeyMarshaller(Class) | An implementation of ```org.infinispan.commons.marshall.Marshaller``` used to serialize and deserialize the keys | ```org.infinispan.jboss.marshalling.commons.GenericJBossMarshaller```
 setValueMarshaller(Class) | Same as ```keyMarshaller``` but for the values | same default as above
 setKeyMediaType(String) | Specify an alternate [Media type](https://en.wikipedia.org/wiki/Media_type) to be used for keys during cache operations. Infinispan will convert the stored keys to this format when reading data. It is recommended to [configure the Media Type](http://infinispan.org/docs/stable/user_guide/user_guide.html#configuration) of the cache when planning to use this property | ```application/x-jboss-marshalling``` or ```application/x-protostream``` when using protofiles and message marshallers
 setValueMediaType(String) | Same as ```keyMediaType``` but for values | same default as above
@@ -463,7 +463,7 @@ Dataset<Row> rows = sparkSession.sql("SELECT field1, count(*) as c from myEntiti
 ```scala
 import org.apache.spark._
 import org.apache.spark.sql._
-import org.infinispan.protostream.annotations.{ProtoField, ProtoMessage}
+import org.infinispan.protostream.annotations.{ProtoField, ProtoName}
 import org.infinispan.spark.config.ConnectorConfiguration
 
 import scala.annotation.meta.beanGetter
@@ -473,7 +473,7 @@ import scala.beans.BeanProperty
   * Entities can be annotated in order to automatically generate protobuf schemas.
   * Also, they should be valid java beans. From Scala this can be achieved as:
   */
-@ProtoMessage(name = "user")
+@ProtoName(value = "user")
 class User(@(ProtoField@beanGetter)(number = 1, required = true) @BeanProperty var name: String,
            @(ProtoField@beanGetter)(number = 2, required = true) @BeanProperty var age: Int) {
    def this() = {

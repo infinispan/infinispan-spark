@@ -17,8 +17,6 @@ class RDDFailOverSuite extends FunSuite with Matchers with Spark with MultipleSe
 
    val NumEntries = 1000
 
-   override def getCacheType = CacheType.DISTRIBUTED
-
    override def getConfiguration = {
       super.getConfiguration.setServerList("127.0.0.1:11222")
         .setWriteBatchSize(5)

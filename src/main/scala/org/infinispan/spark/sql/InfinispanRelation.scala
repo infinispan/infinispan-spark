@@ -4,7 +4,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{Row, SQLContext}
-import org.infinispan.client.hotrod.marshall.ProtoStreamMarshaller
+import org.infinispan.client.hotrod.marshall.MarshallerUtil
 import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.rdd.InfinispanRDD
 
@@ -33,7 +33,7 @@ class InfinispanRelation(context: SQLContext, val parameters: Map[String, String
 
    override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
       val rdd: InfinispanRDD[AnyRef, AnyRef] = new InfinispanRDD(context.sparkContext, props)
-      val serCtx = ProtoStreamMarshaller.getSerializationContext(rdd.remoteCache.getRemoteCacheManager)
+      val serCtx = MarshallerUtil.getSerializationContext(rdd.remoteCache.getRemoteCacheManager)
       val message = serCtx.getMarshaller(clazz).getTypeName
       val projections = toIckle(requiredColumns)
       val predicates = toIckle(filters)
@@ -54,7 +54,7 @@ class InfinispanRelation(context: SQLContext, val parameters: Map[String, String
    private def ToIckle(f: Filter): String = {
       f match {
          case StringEndsWith(a, v) => s"$a LIKE '%$v'"
-         case StringContains(a, v) => s"$a LIKE '%$a%'"
+         case StringContains(a, _) => s"$a LIKE '%$a%'"
          case StringStartsWith(a, v) => s"$a LIKE '$v%'"
          case EqualTo(a, v) => s"$a = '$v'"
          case GreaterThan(a, v) => s"$a > $v"

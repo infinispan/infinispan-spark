@@ -16,8 +16,7 @@ import org.infinispan.spark.domain.Runner
 import org.infinispan.spark.stream._
 import org.infinispan.spark.test.StreamingUtils.TestInputDStream
 import org.infinispan.spark.test.TestingUtil._
-import org.infinispan.spark.test.{CacheType, MultipleServers, SparkStream}
-import org.jboss.dmr.scala.ModelNode
+import org.infinispan.spark.test.{MultipleServers, SparkStream}
 import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
 import ujson.Js
 
@@ -31,16 +30,27 @@ import scala.language.postfixOps
 @DoNotDiscover
 class StreamingSuite extends FunSuite with SparkStream with MultipleServers with Matchers {
 
-   override def getCacheConfig: Option[ModelNode] = Some(ModelNode(
-      "expiration" -> ModelNode(
-         "EXPIRATION" -> ModelNode(
-            "interval" -> 500
-         )
-      ),
-      "encoding" -> ModelNode(
-         "key" -> ModelNode("media-type" -> "application/x-jboss-marshalling"),
-         "value" -> ModelNode("media-type" -> "application/x-jboss-marshalling")
-      ))
+   override def getCacheConfig: Option[String] = Some(
+      """
+        |{
+        |    "distributed-cache":{
+        |        "mode":"SYNC",
+        |        "owners":2,
+        |        "statistics":true,
+        |        "expiration":{
+        |            "interval":500
+        |        },
+        |        "encoding":{
+        |            "key":{
+        |                "media-type":"application/x-jboss-marshalling"
+        |            },
+        |            "value":{
+        |                "media-type":"application/x-jboss-marshalling"
+        |            }
+        |        }
+        |    }
+        |}
+        |""".stripMargin
    )
 
    private def getProperties = {
@@ -137,7 +147,6 @@ class StreamingSuite extends FunSuite with SparkStream with MultipleServers with
 
    private def extractValues[T](streamDump: Set[(Int, T, ClientEvent.Type)]): Set[T] = streamDump.map { case (_, v, _) => v }
 
-   override def getCacheType: CacheType.Value = CacheType.DISTRIBUTED
 }
 
 class uJsonMarshaller extends AbstractMarshaller {

@@ -5,7 +5,6 @@ import org.infinispan.commons.marshall.UTF8StringMarshaller
 import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.domain.Runner
 import org.infinispan.spark.test.{RunnersCache, SingleStandardServer, Spark}
-import org.jboss.dmr.scala.ModelNode
 import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
 
 @DoNotDiscover
@@ -13,11 +12,22 @@ class DataFormatSuite extends FunSuite with RunnersCache with Spark with SingleS
 
    override protected def getNumEntries: Int = 10
 
-   override def getCacheConfig: Option[ModelNode] = Some(
-      ModelNode("encoding" -> ModelNode(
-         "key" -> ModelNode("media-type" -> "application/x-jboss-marshalling"),
-         "value" -> ModelNode("media-type" -> "application/x-jboss-marshalling"))
-      )
+   override def getCacheConfig: Option[String] = Some(
+      """
+        |{
+        |    "local-cache":{
+        |        "statistics":true,
+        |        "encoding":{
+        |            "key":{
+        |                "media-type":"application/x-jboss-marshalling"
+        |            },
+        |            "value":{
+        |                "media-type":"application/x-jboss-marshalling"
+        |            }
+        |        }
+        |    }
+        |}
+        |""".stripMargin
    )
 
    override def getConfiguration: ConnectorConfiguration = {

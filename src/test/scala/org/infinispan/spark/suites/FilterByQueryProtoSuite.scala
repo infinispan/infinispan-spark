@@ -11,8 +11,6 @@ import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
 @DoNotDiscover
 class FilterByQueryProtoSuite extends FunSuite with Spark with MultipleServers with Matchers {
 
-   override def getCacheType: CacheType.Value = CacheType.DISTRIBUTED
-
    override def getSparkConfig: SparkConf = {
       val config = super.getSparkConfig
       config.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
@@ -20,19 +18,19 @@ class FilterByQueryProtoSuite extends FunSuite with Spark with MultipleServers w
    }
 
    override def getConfiguration: ConnectorConfiguration = {
-      new ConnectorConfiguration()
-        .addProtoFile("test.proto", protoFile)
+      val cfg = super.getConfiguration
+      cfg.addProtoFile("test.proto", protoFile)
         .setAutoRegisterProto()
         .addMessageMarshaller(classOf[AddressMarshaller])
         .addMessageMarshaller(classOf[PersonMarshaller])
    }
 
    lazy val remoteCache: RemoteCache[Int, Person] = {
-      val defaultCache = remoteCacheManager.getCache[Int, Person]
+      val cache = remoteCacheManager.getCache[Int, Person](getCacheName)
       (1 to 20).foreach { idx =>
-         defaultCache.put(idx, new Person(s"name$idx", idx, new Address(s"street$idx", idx, "N/A")));
+         cache.put(idx, new Person(s"name$idx", idx, new Address(s"street$idx", idx, "N/A")));
       }
-      defaultCache
+      cache
    }
 
    val protoFile =

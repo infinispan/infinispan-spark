@@ -10,8 +10,6 @@ class DatasetWithScalaEntitySuite extends FunSuite with UsersCache with Spark wi
 
    override protected def getNumEntries: Int = 100
 
-   override def getCacheType = CacheType.DISTRIBUTED
-
    override def getConfiguration = {
       super.getConfiguration
         .addProtoAnnotatedClass(classOf[User])
