@@ -1,8 +1,9 @@
 package org.infinispan.spark.suites
 
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
-import org.infinispan.client.hotrod.marshall.ProtoStreamMarshaller
+import org.infinispan.client.hotrod.marshall.MarshallerUtil
 import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager, Search}
+import org.infinispan.commons.marshall.ProtoStreamMarshaller
 import org.infinispan.protostream.annotations.ProtoSchemaBuilder
 import org.infinispan.spark._
 import org.infinispan.spark.domain.Runner
@@ -16,7 +17,7 @@ class WriteWithProtoSuite extends FunSuite with Spark with SingleStandardServer 
       val rcm = new RemoteCacheManager(
          new ConfigurationBuilder().addServer().host("localhost").port(getServerPort).marshaller(new ProtoStreamMarshaller).build()
       )
-      val serializationContext = ProtoStreamMarshaller.getSerializationContext(rcm)
+      val serializationContext = MarshallerUtil.getSerializationContext(rcm)
       new ProtoSchemaBuilder().fileName("runner.proto").addClass(classOf[Runner]).build(serializationContext)
       rcm
    }

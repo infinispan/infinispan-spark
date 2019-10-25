@@ -1,7 +1,6 @@
 package org.infinispan.spark.suites
 
 import org.infinispan.spark.domain.Runner
-import org.infinispan.spark.test.SampleFilters.{SampleFilterFactory, SampleFilterFactoryWithParam}
 import org.infinispan.spark.test._
 import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
 
@@ -9,20 +8,7 @@ import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
 class CustomFilterRDDSuite extends FunSuite with RunnersCache with Spark with MultipleServers with Matchers {
    override protected def getNumEntries: Int = 100
 
-   override def getCacheType: CacheType.Value = CacheType.REPLICATED
-
-   override def withFilters() = List(
-      new FilterDef(
-         factoryClass = classOf[SampleFilterFactory],
-         classes = Seq(classOf[SampleFilterFactory#SampleFilter]),
-         moduleDeps = Seq(TestEntities.moduleName, "org.scala")
-      ),
-      new FilterDef(
-         classOf[SampleFilterFactoryWithParam],
-         classes = Seq(classOf[SampleFilterFactoryWithParam#SampleFilterParam]),
-         moduleDeps = Seq(TestEntities.moduleName, "org.scala")
-      )
-   )
+   override def getCacheConfig: Option[String] = Some("""{"replicated-cache":{"mode":"SYNC"}}""")
 
    test("Filter by deployed server-side filter") {
       val rdd = createInfinispanRDD[Int, Runner].filterByCustom[String]("sample-filter-factory")

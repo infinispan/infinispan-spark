@@ -12,7 +12,6 @@ import org.infinispan.spark.stream._
 import org.infinispan.spark.test.StreamingUtils.TestInputDStream
 import org.infinispan.spark.test.TestingUtil._
 import org.infinispan.spark.test._
-import org.jboss.dmr.scala.ModelNode
 import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
 
 import scala.collection._
@@ -22,21 +21,26 @@ import scala.language.postfixOps
 @DoNotDiscover
 class StreamingFailOverSuite extends FunSuite with SparkStream with MultipleServers with FailOver with Matchers {
 
-   override def getCacheConfig: Option[ModelNode] = Some(ModelNode(
-      "expiration" -> ModelNode(
-         "EXPIRATION" -> ModelNode(
-            "interval" -> 500
-         )
-      )
-   ))
+   override def getCacheConfig: Option[String] = Some(
+      """
+        |{
+        |    "distributed-cache":{
+        |        "mode":"SYNC",
+        |        "owners":2,
+        |        "statistics":true,
+        |        "expiration":{
+        |            "interval":500
+        |        }
+        |    }
+        |}
+        |""".stripMargin
+   )
 
    protected def getProperties = {
       new ConnectorConfiguration()
         .setServerList(s"localhost:$getServerPort")
         .setCacheName(getCacheName)
    }
-
-   override def getCacheType: CacheType.Value = CacheType.DISTRIBUTED
 
    test("test stream consumer with failover") {
       val cache = getRemoteCache.asInstanceOf[RemoteCache[Int, String]]

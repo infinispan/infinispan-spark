@@ -47,5 +47,5 @@ class SQLSuite extends FunSuite with RunnersCache with Spark with MultipleServer
       f(session, runnersRDD)
    }
 
-   override def getCacheType: CacheType.Value = CacheType.REPLICATED
+   override def getCacheConfig: Option[String] = Some("""{"replicated-cache":{"mode":"SYNC"}}""")
 }

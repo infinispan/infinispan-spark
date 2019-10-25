@@ -39,7 +39,7 @@ public class JavaStreamApiTest {
       InfinispanJavaDStream.writeToInfinispan(dstream, config);
 
       jssc.start();
-      jssc.awaitTerminationOrTimeout(2000);
+      jssc.awaitTerminationOrTimeout(20000);
 
       assertEquals(3, cache.size());
       assertEquals("name1", cache.get(1).getName());

@@ -10,7 +10,7 @@ import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
 class FilterByQueryProtoAnnotationSuite extends FunSuite with RunnersCache with Spark with MultipleServers with Matchers {
    override protected def getNumEntries: Int = 100
 
-   override def getCacheType: CacheType.Value = CacheType.REPLICATED
+   override def getCacheConfig: Option[String] = Some("""{"replicated-cache":{"mode":"SYNC"}}""")
 
    override def getConfiguration = {
       val configuration = super.getConfiguration

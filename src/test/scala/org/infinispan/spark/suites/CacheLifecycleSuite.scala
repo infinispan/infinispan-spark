@@ -3,15 +3,13 @@ package org.infinispan.spark.suites
 import org.infinispan.spark._
 import org.infinispan.spark.domain.Runner
 import org.infinispan.spark.rdd.InfinispanRDD
-import org.infinispan.spark.test.{CacheType, MultipleServers, RunnersCache, Spark}
+import org.infinispan.spark.test.{MultipleServers, RunnersCache, Spark}
 import org.scalatest.{DoNotDiscover, FunSuite, Matchers}
 
 @DoNotDiscover
 class CacheLifecycleSuite extends FunSuite with RunnersCache with Spark with MultipleServers with Matchers {
 
    override protected def getNumEntries: Int = 100
-
-   override def getCacheType: CacheType.Value = CacheType.DISTRIBUTED
 
    test("Reuse same RDD") {
       val infinispanRDD = createInfinispanRDD[Int, Runner]
@@ -71,8 +69,6 @@ class CacheLifecycleSuite extends FunSuite with RunnersCache with Spark with Mul
          <infinispan>
             <cache-container>
                <replicated-cache name="myCache">
-                  <eviction size="-1" strategy="NONE"/>
-                  <expiration max-idle="-1"/>
                   <indexing index="NONE"/>
                </replicated-cache>
             </cache-container>
@@ -86,7 +82,7 @@ class CacheLifecycleSuite extends FunSuite with RunnersCache with Spark with Mul
    }
 
    test("Auto create caches from template") {
-      val cfg = getConfiguration.setCacheName("pokemon").setAutoCreateCacheFromTemplate("memory-bounded")
+      val cfg = getConfiguration.setCacheName("pokemon").setAutoCreateCacheFromTemplate("replicated")
 
       val rdd = new InfinispanRDD[String, String](sc, configuration = cfg)
 

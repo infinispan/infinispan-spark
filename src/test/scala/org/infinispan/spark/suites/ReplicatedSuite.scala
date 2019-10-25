@@ -7,5 +7,6 @@ import org.scalatest.DoNotDiscover
 class ReplicatedSuite extends RDDRetrievalTest with WordCache with Spark with MultipleServers {
    override protected def getNumEntries = 100
 
-   override def getCacheType = CacheType.REPLICATED
+   override def getCacheConfig: Option[String] = Some("""{"replicated-cache":{"mode":"SYNC"}}""")
+
 }

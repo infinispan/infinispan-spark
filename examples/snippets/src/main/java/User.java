@@ -1,7 +1,8 @@
 import org.infinispan.protostream.annotations.ProtoField;
-import org.infinispan.protostream.annotations.ProtoMessage;
+import org.infinispan.protostream.annotations.ProtoName;
 
-@ProtoMessage(name = "user")
+@ProtoName(value = "user")
+@SuppressWarnings("unused")
 public class User {
 
     @ProtoField(number = 1, required = true)

@@ -10,8 +10,6 @@ class CustomSplitterSuite extends FunSuite with WordCache with Spark with Multip
 
    override protected def getNumEntries: Int = 100
 
-   override def getCacheType = CacheType.DISTRIBUTED
-
    test("RDD with custom splitter implementation") {
       val customSplitter = new FixedPartitionsSplitter(2)
 

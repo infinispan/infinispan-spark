@@ -11,8 +11,6 @@ class DataSetSuite extends FunSuite with RunnersCache with Spark with MultipleSe
 
    override protected def getNumEntries: Int = 100
 
-   override def getCacheType = CacheType.DISTRIBUTED
-
    override def getConfiguration = {
       val config = super.getConfiguration
       config.addProtoAnnotatedClass(classOf[Runner])

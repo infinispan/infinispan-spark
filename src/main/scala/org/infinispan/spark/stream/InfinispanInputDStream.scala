@@ -66,10 +66,10 @@ private class EventsReceiver[K, V](storageLevel: StorageLevel, configuration: Co
          val rawData = ByteBuffer.wrap(eventData)
          val rawKey = readElement(rawData)
          val classWhiteList = new ClassWhiteList()
-         val key: K = dataFormat.keyToObj(rawKey, new ClassWhiteList()).asInstanceOf[K]
+         val key: K = dataFormat.keyToObj[K](rawKey, new ClassWhiteList())
          val value = if (!ignoreValue) {
             val rawValue = readElement(rawData)
-            dataFormat.valueToObj(rawValue, classWhiteList).asInstanceOf[V]
+            dataFormat.valueToObj[V](rawValue, classWhiteList)
          } else null.asInstanceOf[V]
 
          store((key, value, event.getType))

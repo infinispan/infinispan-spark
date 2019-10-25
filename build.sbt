@@ -23,8 +23,8 @@ lazy val core = (project in file("."))
   .settings(
     moduleName := "infinispan-spark",
     libraryDependencies ++= Seq(sparkCore, sparkStreaming, sparkSQL, sparkHive, hotRodClient, queryDSL, jcip,
-      junit, scalaTest, scalaDMR, remoteQueryClient, protoStream,
-      infinispanCommons, shrinkWrap, infinispanCore, sl4jbridge, log4j, uJson),
+      junit, scalaTest, remoteQueryClient, protoStream, jbossMarshalling,
+      infinispanCommons, shrinkWrap, infinispanCore, sl4jbridge, log4j, sttp, uJson),
     downloadServer := {
       val destination = new File(ServerDownloadDir, serverZip)
       if (java.nio.file.Files.notExists(destination.toPath)) {
@@ -43,7 +43,7 @@ lazy val core = (project in file("."))
       val destinationWithoutVersion = destination / ServerFolder
       IO.unzip(zipPath, destination).toSeq
       (destination ** "*infinispan-server*").get.head.renameTo(destinationWithoutVersion)
-      installScalaModule(report, destinationWithoutVersion, scalaVersion.value)
+      installScalaLibrary(report, destinationWithoutVersion, scalaVersion.value)
       (destinationWithoutVersion ** AllPassFilter).get
     },
     getSparkVersion := {
@@ -110,24 +110,7 @@ def commonSettings = Seq(
   parallelExecution in Global := false
 )
 
-
-def installScalaModule(report: UpdateReport, serverDir: File, version: String): Unit = {
-  def moduleXML(scalaLibrary: String) = {
-    <module xmlns="urn:jboss:module:1.3" name="org.scala">
-      <resources>
-        <resource-root path={s"$scalaLibrary"}/>
-      </resources>
-      <dependencies>
-        <module name="sun.jdk"/>
-      </dependencies>
-    </module>
-  }
-
-  val moduleFile = "module.xml"
+def installScalaLibrary(report: UpdateReport, serverDir: File, version: String): Unit = {
   val scalaLibrary = report.matching(artifactFilter(name = "scala-library")).head
-  val moduleDir = serverDir / "modules" / "org" / "scala" / "main"
-
-  IO.createDirectory(moduleDir)
-  IO.write(moduleDir / moduleFile, moduleXML(scalaLibrary.getName).toString())
-  IO.copyFile(scalaLibrary, moduleDir / scalaLibrary.getName)
+   IO.copyFile(scalaLibrary,  serverDir / "lib" / scalaLibrary.getName)
 }

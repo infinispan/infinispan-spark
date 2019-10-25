@@ -1,3 +1,4 @@
+import org.infinispan.protostream.annotations.ProtoName
 import org.infinispan.spark.rdd.Splitter
 
 class MyEntity
@@ -170,7 +171,7 @@ class Samples {
   def dataSetPushdown(): Unit = {
     import org.apache.spark._
     import org.apache.spark.sql._
-    import org.infinispan.protostream.annotations.{ProtoField, ProtoMessage}
+    import org.infinispan.protostream.annotations.ProtoField
     import org.infinispan.spark.config.ConnectorConfiguration
 
     import scala.annotation.meta.beanGetter
@@ -180,7 +181,7 @@ class Samples {
       * Entities can be annotated in order to automatically generate protobuf schemas.
       * Also, they should be valid java beans. From Scala this can be achieved as:
       */
-    @ProtoMessage(name = "user")
+    @ProtoName(value = "user")
     class User(@(ProtoField@beanGetter)(number = 1, required = true) @BeanProperty var name: String,
                @(ProtoField@beanGetter)(number = 2, required = true) @BeanProperty var age: Int) {
 
