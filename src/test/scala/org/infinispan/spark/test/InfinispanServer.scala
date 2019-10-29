@@ -19,6 +19,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import scala.io.Source
 import scala.language.postfixOps
 import scala.sys.process._
 import scala.util.{Failure, Try}
@@ -261,9 +262,30 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 
    def setTrace(configFile: String, categories: Option[String]): Unit = {
       val logConfig = Paths.get(serverHome, DefaultConfigFolder, "logging.properties")
-      val fw = new FileWriter(logConfig.toFile, true)
-      categories.map(_.split(",")).foreach(c => fw.append(s"logger.$c=TRACE"))
-      fw.close()
+      val file = logConfig.toFile
+
+      def loadLoggingProperties = {
+         val source = Source.fromFile(file)
+         val stringses = source.getLines().map(l => {
+            val keyValue = l.split("=")
+            (keyValue(0), keyValue(1))
+         }).toArray
+         source.close()
+         mutable.LinkedHashMap(stringses: _*)
+      }
+
+      def saveLoggingProperties(map: mutable.LinkedHashMap[String, String]): Unit = {
+         val writer = new FileWriter(file)
+         map.foreach { case (k,v) => writer.append(s"$k=$v\n")}
+         writer.close()
+      }
+
+      val map = loadLoggingProperties
+      categories.foreach(_.split(",").foreach(c => {
+         map.+=(s"logger.$c.level" -> "TRACE")
+         map("loggers") = map("loggers") + "," + c
+      }))
+      saveLoggingProperties(map)
    }
 
    def addEntities(entities: EntityDef): Unit = {
