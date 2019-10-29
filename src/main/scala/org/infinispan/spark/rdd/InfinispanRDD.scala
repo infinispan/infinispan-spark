@@ -65,11 +65,11 @@ class InfinispanRDD[K, V](@transient val sc: SparkContext,
       val segmentFilter = infinispanPartition.segments
       val closeableIterator = cache.retrieveEntries(filterFactory, factoryParams, segmentFilter, batch)
 
-      context.addTaskCompletionListener(t => {
+      context.addTaskCompletionListener[Unit](_ => {
          closeableIterator.close()
          remoteCacheManager.stop()
       })
-      new InfinispanIterator(closeableIterator, context)
+      new InfinispanIterator(closeableIterator)
    }
 
    override def count() = remoteCache.size()

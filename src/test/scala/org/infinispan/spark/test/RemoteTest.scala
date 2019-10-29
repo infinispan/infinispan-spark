@@ -59,7 +59,7 @@ trait SingleServer extends RemoteTest with BeforeAndAfterAll {
 trait SingleStandardServer extends SingleServer {
    this: Suite =>
 
-   override val node = SingleStandardNode
+   override val node: SingleNode = SingleStandardNode
 }
 
 @DoNotDiscover

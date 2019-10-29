@@ -6,8 +6,7 @@ import java.util.Properties
 import org.infinispan.client.hotrod.impl.ConfigurationProperties._
 import org.infinispan.commons.marshall.Marshaller
 import org.infinispan.protostream.BaseMarshaller
-
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 /**
@@ -170,39 +169,39 @@ class ConnectorConfiguration extends Serializable {
       if (targetEntity != null)
          stringMap += TargetEntity -> targetEntity.getName
 
-      hotRodClientProps.foreach { case (k, v) => stringMap += k -> v }
+      hotRodClientProps.asScala.foreach { case (k, v) => stringMap += k -> v }
 
       stringMap.toMap
    }
 
 
-   def getCacheName = cacheName
+   def getCacheName: String = cacheName
 
-   def getAutoCreateCacheFromConfig = autoCreateCacheFromConfig
+   def getAutoCreateCacheFromConfig: String = autoCreateCacheFromConfig
 
-   def getAutoCreateCacheFromTemplate = autoCreateCacheFromTemplate
+   def getAutoCreateCacheFromTemplate: String = autoCreateCacheFromTemplate
 
-   def getReadBatchSize = readBatchSize
+   def getReadBatchSize: Int = readBatchSize
 
-   def getWriteBatchSize = writeBatchSize
+   def getWriteBatchSize: Int = writeBatchSize
 
-   def getServerPartitions = serverPartitions
+   def getServerPartitions: Int = serverPartitions
 
-   def getRegisterSchemas = autoRegister
+   def getRegisterSchemas: Boolean = autoRegister
 
-   def usesProtobuf = getProtoEntities.nonEmpty || descriptors.nonEmpty
+   def usesProtobuf: Boolean = getProtoEntities.nonEmpty || descriptors.nonEmpty
 
-   def getProtoEntities = protoAnnotatedClasses
+   def getProtoEntities: mutable.Set[Class[_]] = protoAnnotatedClasses
 
-   def getProtoFiles = descriptors.toMap
+   def getProtoFiles: Map[String, String] = descriptors.toMap
 
-   def getMarshallers = messageMarshallers
+   def getMarshallers: mutable.Set[Class[_ <: BaseMarshaller[_]]] = messageMarshallers
 
-   def getTargetEntity = targetEntity
+   def getTargetEntity: Class[_] = targetEntity
 
    def getHotRodClientProperties: Properties = hotRodClientProps
 
-   def getServerList = getHotRodClientProperties.getProperty(SERVER_LIST)
+   def getServerList: String = getHotRodClientProperties.getProperty(SERVER_LIST)
 
    def getKeyMediaType: String = keyMediaType
 
@@ -212,6 +211,8 @@ class ConnectorConfiguration extends Serializable {
 
    def getValueMarshaller: Class[_ <: Marshaller] = valueMarshaller
 
+
+   override def toString = s"ConnectorConfiguration($cacheName, $readBatchSize, $writeBatchSize, $serverPartitions, $autoRegister, $targetEntity, $messageMarshallers, $protoAnnotatedClasses, $descriptors, $hotRodClientProps, $autoCreateCacheFromConfig, $autoCreateCacheFromTemplate, $keyMediaType, $valueMediaType, $keyMarshaller, $valueMarshaller)"
 }
 
 object ConnectorConfiguration {

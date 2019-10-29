@@ -11,7 +11,7 @@ import org.apache.spark.streaming.dstream.ReceiverInputDStream
 import org.apache.spark.streaming.receiver.Receiver
 
 import scala.annotation.meta.param
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.duration.Duration
 import scala.reflect.ClassTag
 
@@ -35,9 +35,9 @@ object StreamingUtils {
       override def getReceiver(): Receiver[T] = new TestReceiver[T](of, streamItemEvery)
    }
 
-   def createJavaReceiverDInputStream[T](jssc: JavaStreamingContext, of: JList[T], streamItemEvery: JDuration) = {
+   def createJavaReceiverDInputStream[T](jssc: JavaStreamingContext, of: JList[T], streamItemEvery: JDuration): JavaReceiverInputDStream[T] = {
       implicit val cmt: ClassTag[T] = implicitly[ClassTag[AnyRef]].asInstanceOf[ClassTag[T]]
-      JavaReceiverInputDStream.fromReceiverInputDStream(new TestInputDStream[T](jssc.ssc, of.toSeq, Duration(streamItemEvery.getNano, TimeUnit.NANOSECONDS)))
+      JavaReceiverInputDStream.fromReceiverInputDStream(new TestInputDStream[T](jssc.ssc, of.asScala, Duration(streamItemEvery.getNano, TimeUnit.NANOSECONDS)))
    }
 
 }

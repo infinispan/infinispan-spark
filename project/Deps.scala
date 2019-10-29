@@ -27,5 +27,5 @@ object Deps {
 
    // Demo deps
    val twitterHbc = "com.twitter" % "hbc-core" % twitterHbcVersion
-   val playJson = "com.typesafe.play" % "play-json_2.11" % playJsonVersion
+   val playJson = "com.typesafe.play" %% "play-json" % playJsonVersion
 }

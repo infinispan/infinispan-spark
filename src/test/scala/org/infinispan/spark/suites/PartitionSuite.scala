@@ -1,16 +1,16 @@
 package org.infinispan.spark.suites
 
 import java.net.{InetSocketAddress, SocketAddress}
+import java.util
 
 import org.apache.spark.Partition
 import org.infinispan.client.hotrod.CacheTopologyInfo
 import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.rdd.{InfinispanPartition, PerServerSplitter}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.{Assertion, FunSuite, Matchers}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.language.implicitConversions
-
 
 class PartitionSuite extends FunSuite with Matchers {
 
@@ -57,20 +57,20 @@ class PartitionSuite extends FunSuite with Matchers {
 
    implicit def unwrap(p: Partition): InfinispanPartition = p.asInstanceOf[InfinispanPartition]
 
-   def assertAllSegmentsPresent(partitions: Array[Partition], numSegments: Int) = {
-      partitions.flatMap(_.segments).toSet shouldBe Set(0 until numSegments: _*)
+   def assertAllSegmentsPresent(partitions: Array[Partition], numSegments: Int): Assertion = {
+      partitions.flatMap(_.segments.asScala).toSet shouldBe Set(0 until numSegments: _*)
    }
 
-   def assertIdxCrescent(partitions: Array[Partition]) = {
+   def assertIdxCrescent(partitions: Array[Partition]): Assertion = {
       val (res, _) = partitions.foldLeft((true, -1)) { case ((acc, prev), p) => (acc && (p.index > prev), p.index) }
       res shouldBe true
    }
 
-   def assertNoDuplicateSegments(partitions: Array[Partition], numSegments: Int) = {
-      partitions.flatMap(_.segments).length shouldBe numSegments
+   def assertNoDuplicateSegments(partitions: Array[Partition], numSegments: Int): Assertion = {
+      partitions.flatMap(_.segments.asScala).length shouldBe numSegments
    }
 
-   def assertLocations(partitions: Array[Partition], numServers: Int, partitionsPerServer: Int) = {
+   def assertLocations(partitions: Array[Partition], numServers: Int, partitionsPerServer: Int): Assertion = {
       val locs = partitions.groupBy(_.location.address)
       locs.keys.size shouldBe numServers
       locs.values.flatten.size shouldBe numServers * partitionsPerServer
@@ -78,7 +78,7 @@ class PartitionSuite extends FunSuite with Matchers {
 
    def runTest(numSegments: Int, segmentsPerServer: Map[SocketAddress, Set[Integer]])(partitions: Int) {
       runTest(numSegments, new CacheTopologyInfo {
-         override def getSegmentsPerServer =
+         override def getSegmentsPerServer: util.Map[SocketAddress, util.Set[Integer]] =
             mapAsJavaMap(segmentsPerServer.mapValues(setAsJavaSet))
 
          override def getNumSegments: Int = numSegments
@@ -110,7 +110,7 @@ class PartitionSuite extends FunSuite with Matchers {
       val serversStream = (Iterator continually servers).flatten
       val s = (for (i <- 0 until numSegments) yield int2Integer(i) -> serversStream.take(numOwners).toSet).toMap
       new CacheTopologyInfo {
-         override def getSegmentsPerServer = mapAsJavaMap(reverse(s).mapValues(setAsJavaSet))
+         override def getSegmentsPerServer: util.Map[SocketAddress, util.Set[Integer]] = mapAsJavaMap(reverse(s).mapValues(setAsJavaSet))
 
          override def getNumSegments: Int = numSegments
 

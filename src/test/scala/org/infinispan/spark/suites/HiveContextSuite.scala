@@ -11,7 +11,7 @@ class HiveContextSuite extends FunSuite with RunnersCache with Spark with Single
    override protected def getNumEntries: Int = 200
 
    test("Hive SQL") {
-      withHiveContext { (session: SparkSession, runnersRDD) =>
+      withHiveContext { (session: SparkSession, _) =>
          val sample = session.sql(
             """
              SELECT * FROM runners TABLESAMPLE(10 ROWS) s

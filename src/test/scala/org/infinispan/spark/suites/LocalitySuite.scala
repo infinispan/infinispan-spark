@@ -5,11 +5,11 @@ import java.net.{InetSocketAddress, SocketAddress}
 import org.infinispan.spark.rdd.PreferredServerBalancingStrategy
 import org.scalatest.{FunSuite, Matchers}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 class LocalitySuite extends FunSuite with Matchers {
 
-   val servers = Set(
+   val servers: Set[SocketAddress] = Set(
       new InetSocketAddress("host1", 80),
       new InetSocketAddress("host2", 81),
       new InetSocketAddress("host3", 82)
@@ -19,19 +19,19 @@ class LocalitySuite extends FunSuite with Matchers {
       val preferred = new InetSocketAddress("host1", 80)
 
       val lbStrategy = new PreferredServerBalancingStrategy(preferred)
-      lbStrategy.setServers(servers)
+      lbStrategy.setServers(servers.asJava)
 
-      lbStrategy.nextServer(Set[SocketAddress]()) shouldBe preferred
-      lbStrategy.nextServer(Set[SocketAddress](preferred)) shouldNot be(preferred)
+      lbStrategy.nextServer(Set[SocketAddress]().asJava) shouldBe preferred
+      lbStrategy.nextServer(Set[SocketAddress](preferred).asJava) shouldNot be(preferred)
    }
 
    test("ignore invalid hinted server") {
       val invalid = new InetSocketAddress("invalidHost", 81)
 
       val lbStrategy = new PreferredServerBalancingStrategy(invalid)
-      lbStrategy.setServers(servers)
+      lbStrategy.setServers(servers.asJava)
 
-      lbStrategy.nextServer(Set[SocketAddress](invalid)) shouldNot be(invalid)
+      lbStrategy.nextServer(Set[SocketAddress](invalid).asJava) shouldNot be(invalid)
    }
 
 

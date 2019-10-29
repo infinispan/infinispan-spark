@@ -1,3 +1,4 @@
+import org.apache.spark.Partition
 import org.infinispan.protostream.annotations.ProtoName
 import org.infinispan.spark.rdd.Splitter
 
@@ -8,7 +9,7 @@ class MySplitter extends Splitter {
   import org.infinispan.client.hotrod.CacheTopologyInfo
   import org.infinispan.spark.config.ConnectorConfiguration
 
-  override def split(cacheTopology: CacheTopologyInfo, properties: ConnectorConfiguration) = ???
+  override def split(cacheTopology: CacheTopologyInfo, properties: ConnectorConfiguration): Array[Partition] = ???
 }
 
 class Samples {
@@ -24,6 +25,8 @@ class Samples {
     val infinispanRDD = new InfinispanRDD[String, MyEntity](sc, config)
 
     val entitiesRDD = infinispanRDD.values
+
+    entitiesRDD.count()
   }
 
   def differentFormats(): Unit = {
@@ -41,6 +44,8 @@ class Samples {
 
     // Values will be JSON represented as String
     val jsonRDD = new InfinispanRDD[String, String](sc, config)
+
+    jsonRDD.count()
   }
 
 
@@ -60,6 +65,8 @@ class Samples {
     val infinispanRDD = new InfinispanRDD[String, MyEntity](sc, config)
 
     val entitiesRDD = infinispanRDD.values
+
+    entitiesRDD.count()
 
     // Obtain the cache admin object
     val cacheAdmin = infinispanRDD.cacheAdmin()
@@ -85,6 +92,7 @@ class Samples {
     val mySplitter = new MySplitter()
     val infinispanRDD = new InfinispanRDD[String, MyEntity](sc, config, mySplitter)
 
+    infinispanRDD.count()
   }
 
   def dstream(): Unit = {
@@ -98,6 +106,7 @@ class Samples {
     val config = new ConnectorConfiguration()
     val ssc = new StreamingContext(sc, Seconds(1))
     val stream = new InfinispanInputDStream[String, MyEntity](ssc, StorageLevel.MEMORY_ONLY, config)
+    stream.count()
   }
 
   def filterByPreBuiltQueryObject(): Unit = {
@@ -111,6 +120,7 @@ class Samples {
     val query = Search.getQueryFactory(cache).from(classOf[MyEntity]).having("field").equal("some value").build()
 
     val filteredRDD = rdd.filterByQuery(query)
+    filteredRDD.count()
 
   }
 
@@ -120,6 +130,7 @@ class Samples {
     val rdd: InfinispanRDD[String, MyEntity] = ???
 
     val filteredRDD = rdd.filterByQuery("FROM MyEntity e where e.field BETWEEN 10 AND 20")
+    filteredRDD.count()
   }
 
   def filterByDeployed(): Unit = {
@@ -128,6 +139,7 @@ class Samples {
     val rdd: InfinispanRDD[String, MyEntity] = ???
     // "my-filter-factory" filter and converts MyEntity to a Double, and has two parameters
     val filteredRDD = rdd.filterByCustom[Double]("my-filter-factory", "param1", "param2")
+    filteredRDD.count()
   }
 
   def writeArbitraryKV(): Unit = {
@@ -206,9 +218,12 @@ class Samples {
     // From here it's possible to query using the DatasetSample API...
     val rows: Array[Row] = df.filter(df("age").gt(30)).filter(df("age").lt(40)).collect()
 
+    rows.length
+
     // ... or execute SQL queries
     df.createOrReplaceTempView("user")
     val query = "SELECT first(r.name) as name, first(r.age) as age FROM user u GROUP BY r.age"
     val rowsFromSQL: Array[Row] = sparkSession.sql(query).collect()
+    rowsFromSQL.length
   }
 }

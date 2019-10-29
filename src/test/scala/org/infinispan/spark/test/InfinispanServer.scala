@@ -1,6 +1,6 @@
 package org.infinispan.spark.test
 
-import java.io.File
+import java.io.{File, FileWriter}
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.nio.file.{Files, Paths}
 
@@ -24,27 +24,27 @@ import scala.sys.process._
 import scala.util.{Failure, Try}
 
 class FilterDef(val factoryClass: Class[_ <: KeyValueFilterConverterFactory[_, _, _]], val classes: Seq[Class[_]]) {
-   val name = factoryClass.getAnnotation(classOf[NamedFactory]).name()
-   val allClasses = classes :+ factoryClass
+   val name: String = factoryClass.getAnnotation(classOf[NamedFactory]).name()
+   val allClasses: Seq[Class[_]] = classes :+ factoryClass
 }
 
 class EntityDef(val classes: Seq[Class[_]], val jarName: String)
 
 object TestEntities extends EntityDef(
    Seq(classOf[Runner], classOf[org.infinispan.spark.domain.Address], classOf[Person]), jarName = "entities.jar") {
-   val moduleName = "deployment." + jarName
+   val moduleName: String = "deployment." + jarName
 }
 
 /**
- * A cluster of Infinispan Servers that can be managed together
- */
+  * A cluster of Infinispan Servers that can be managed together
+  */
 private[test] class Cluster(size: Int, location: String, cacheContainer: String) {
    private val _servers = mutable.ListBuffer[InfinispanServer]()
    private val _failed_servers = mutable.ListBuffer[InfinispanServer]()
    val ServerConfig = "infinispan.xml"
    @volatile private var started = false
    var entities: Option[EntityDef] = None
-   var filters = ListBuffer[FilterDef]()
+   var filters: ListBuffer[FilterDef] = ListBuffer[FilterDef]()
 
    Runtime.getRuntime.addShutdownHook(new Thread {
       override def run(): Unit = Try(shutDown())
@@ -82,9 +82,9 @@ private[test] class Cluster(size: Int, location: String, cacheContainer: String)
       }, timeOut)
    }
 
-   def isStarted = started
+   def isStarted: Boolean = started
 
-   def startAndWait(duration: Duration, parallel: Boolean = true) = {
+   def startAndWait(duration: Duration, parallel: Boolean = true): Unit = {
       val servers = for (i <- 0 until size) yield {
          new InfinispanServer(location, s"server$i", clustered = true, false, cacheContainer, i * 1000)
       }
@@ -93,39 +93,39 @@ private[test] class Cluster(size: Int, location: String, cacheContainer: String)
       started = true
    }
 
-   def shutDown() = if (started) {
+   def shutDown(): Unit = if (started) {
       _servers.par.foreach(_.shutDown())
       _servers.clear()
       started = false
    }
 
-   def failServer(i: Int) = if (i < _servers.size) {
+   def failServer(i: Int): Unit = if (i < _servers.size) {
       val failedServer = _servers.remove(i)
       failedServer.shutDown()
       _failed_servers += failedServer
    }
 
-   def restoreFailed(timeOut: Duration) = {
+   def restoreFailed(timeOut: Duration): Unit = {
       startSequential(_failed_servers, timeOut)
       _servers ++= _failed_servers
       _failed_servers.clear()
    }
 
-   def getFirstServer = _servers.head
+   def getFirstServer: InfinispanServer = _servers.head
 
    def createCache[K, V](name: String, extraConfigs: Option[String]): Unit = {
       _servers.foreach(_.addCache(name, extraConfigs))
    }
 
-   def getServerList = _servers.map(s => s"localhost:${s.getHotRodPort}").mkString(";")
+   def getServerList: String = _servers.map(s => s"localhost:${s.getHotRodPort}").mkString(";")
 
-   def removeFilter(f: FilterDef) = _servers.head.removeFilter(f)
+   def removeFilter(f: FilterDef): Boolean = _servers.head.removeFilter(f)
 
 }
 
 /**
- * A remote infinispan server controlled by issuing native management operations
- */
+  * A remote infinispan server controlled by issuing native management operations
+  */
 private[test] class InfinispanServer(location: String, name: String, clustered: Boolean = false, encrypted: Boolean, cacheContainer: String,
                                      portOffSet: Int = 0) {
    val BinFolder = "bin"
@@ -151,7 +151,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       }
    }
 
-   val DefaultCacheConfig = {
+   val DefaultCacheConfig: String = {
       Js.Obj("distributed-cache" ->
         Js.Obj(
            "template" -> false,
@@ -181,7 +181,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       newConfig
    }
 
-   def start(config: String) = {
+   def start(config: String): Unit = {
       val isDebug = Option(System.getProperty("serverDebug"))
       val infinispanTrace = Option(System.getProperty("enableTrace"))
       val logDir = Paths.get(serverHome, "logs")
@@ -220,14 +220,14 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       started = true
    }
 
-   def isStarted = started
+   def isStarted: Boolean = started
 
-   def startAndWaitForCluster(config: String, cacheManager: String, size: Int, duration: Duration) = {
+   def startAndWaitForCluster(config: String, cacheManager: String, size: Int, duration: Duration): Unit = {
       start(config)
       waitForCacheManager(cacheManager, size, duration)
    }
 
-   def startAndWaitForCacheManager(config: String, members: Int, name: String) = {
+   def startAndWaitForCacheManager(config: String, members: Int, name: String): Unit = {
       start(config)
       waitForCacheManager(name, members, DefaultDuration)
    }
@@ -239,19 +239,19 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       started = false
    }
 
-   def getHotRodPort = if (portOffSet == 0) Port else Port + portOffSet
+   def getHotRodPort: Int = if (portOffSet == 0) Port else Port + portOffSet
 
-   def waitForCacheManager(cacheManager: String, members: Int, duration: Duration) = waitForCondition(() => client.isHealthy(cacheManager, members), duration)
+   def waitForCacheManager(cacheManager: String, members: Int, duration: Duration): Unit = waitForCondition(() => client.isHealthy(cacheManager, members), duration)
 
-   def addCache(cacheName: String, config: Option[String]) = client.createCache(cacheName, config.getOrElse(DefaultCacheConfig))
+   def addCache(cacheName: String, config: Option[String]): Unit = client.createCache(cacheName, config.getOrElse(DefaultCacheConfig))
 
-   def deployArchive(archive: JavaArchive, waitDeployment: Boolean = true) = {
+   def deployArchive(archive: JavaArchive): Unit = {
       archive.as(classOf[ZipExporter]).exportTo(Paths.get(serverHome, DeploymentFolder, archive.getName).toFile, true)
    }
 
-   def undeployArchive(name: String) = Paths.get(serverHome, DeploymentFolder, name).toFile.delete()
+   def undeployArchive(name: String): Boolean = Paths.get(serverHome, DeploymentFolder, name).toFile.delete()
 
-   def addFilter(filterDef: FilterDef) = {
+   def addFilter(filterDef: FilterDef): Unit = {
       deployArchive(ShrinkWrap
         .create(classOf[JavaArchive], s"${filterDef.name}.jar")
         .addClasses(filterDef.allClasses: _*)
@@ -260,19 +260,19 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 
 
    def setTrace(configFile: String, categories: Option[String]): Unit = {
-      //TODO
+      val logConfig = Paths.get(serverHome, DefaultConfigFolder, "logging.properties")
+      val fw = new FileWriter(logConfig.toFile, true)
+      categories.map(_.split(",")).foreach(c => fw.append(s"logger.$c=TRACE"))
+      fw.close()
    }
 
    def addEntities(entities: EntityDef): Unit = {
       if (entities.classes.nonEmpty) {
-         deployArchive(
-            ShrinkWrap.create(classOf[JavaArchive], entities.jarName)
-              .addClasses(entities.classes: _*), waitDeployment = false
-         )
+         deployArchive(ShrinkWrap.create(classOf[JavaArchive], entities.jarName).addClasses(entities.classes: _*))
       }
    }
 
-   def removeFilter(filterDef: FilterDef) = undeployArchive(s"${filterDef.name}.jar")
+   def removeFilter(filterDef: FilterDef): Boolean = undeployArchive(s"${filterDef.name}.jar")
 
 }
 
@@ -291,7 +291,7 @@ sealed trait SingleNode {
       start(getConfigFile)
    }
 
-   private def start(config: String) = if (!server.isStarted) server.startAndWaitForCacheManager(config, 1, cacheContainer)
+   private def start(config: String): Unit = if (!server.isStarted) server.startAndWaitForCacheManager(config, 1, cacheContainer)
 
    def beforeStart(): Unit = {
       server.addEntities(TestEntities)
@@ -299,15 +299,15 @@ sealed trait SingleNode {
 
    def afterShutDown(): Unit = {}
 
-   def shutDown() = server.shutDown()
+   def shutDown(): Unit = server.shutDown()
 
-   def addFilter(f: FilterDef) = server.addFilter(f)
+   def addFilter(f: FilterDef): Unit = server.addFilter(f)
 
-   def removeFilter(f: FilterDef) = server.removeFilter(f)
+   def removeFilter(f: FilterDef): Boolean = server.removeFilter(f)
 
-   def getServerPort = server.getHotRodPort
+   def getServerPort: Int = server.getHotRodPort
 
-   def createCache(name: String, config: Option[String]) = server.addCache(name, config)
+   def createCache(name: String, config: Option[String]): Unit = server.addCache(name, config)
 
 }
 
@@ -326,7 +326,7 @@ object SingleSecureNode extends SingleNode {
 
    def toPath(classPath: String): java.nio.file.Path = Paths.get(getClass.getResource(classPath).getPath)
 
-   override def beforeStart() = {
+   override def beforeStart(): Unit = {
       super.beforeStart()
       val resource = getClass.getClassLoader.getResource(getConfigFile)
       val f = Paths.get(resource.toURI)
@@ -337,35 +337,35 @@ object SingleSecureNode extends SingleNode {
 }
 
 object Cluster {
-   val NumberOfServers = 3
-   val ServerPath = "/infinispan-server/"
-   val StartTimeout = 200 seconds
-   val CacheContainer = "default"
+   private val NumberOfServers = 3
+   private val ServerPath = "/infinispan-server/"
+   private val StartTimeout = 200 seconds
+   private val CacheContainer = "default"
 
    private val cluster: Cluster = new Cluster(NumberOfServers, ServerPath, CacheContainer)
 
-   def start() = if (!cluster.isStarted) {
+   def start(): Unit = if (!cluster.isStarted) {
       cluster.addEntities(TestEntities)
       FilterDefs.list.foreach(cluster.addFilter)
       cluster.startAndWait(StartTimeout)
    }
 
-   def addFilter[K, V, C](f: FilterDef) = cluster.addFilter(f)
+   def addFilter[K, V, C](f: FilterDef): Unit = cluster.addFilter(f)
 
-   def removeFilter(f: FilterDef) = cluster.removeFilter(f)
+   def removeFilter(f: FilterDef): Boolean = cluster.removeFilter(f)
 
-   def shutDown() = cluster.shutDown()
+   def shutDown(): Unit = cluster.shutDown()
 
-   def failServer(i: Int) = cluster.failServer(i)
+   def failServer(i: Int): Unit = cluster.failServer(i)
 
-   def restore() = cluster.restoreFailed(StartTimeout)
+   def restore(): Unit = cluster.restoreFailed(StartTimeout)
 
-   def createCache(name: String, config: Option[String]) = cluster.createCache(name, config)
+   def createCache(name: String, config: Option[String]): Unit = cluster.createCache(name, config)
 
-   def getFirstServerPort = cluster.getFirstServer.getHotRodPort
+   def getFirstServerPort: Int = cluster.getFirstServer.getHotRodPort
 
-   def getClusterSize = cluster._servers.size
+   def getClusterSize: Int = cluster._servers.size
 
-   def getServerList = cluster.getServerList
+   def getServerList: String = cluster.getServerList
 
 }

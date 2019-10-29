@@ -12,7 +12,7 @@ import org.infinispan.protostream.annotations.ProtoSchemaBuilder
 import org.infinispan.query.remote.client.ProtobufMetadataManagerConstants
 import org.infinispan.spark.config.ConnectorConfiguration
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 
 /**
@@ -69,7 +69,7 @@ object RemoteCacheManagerBuilder {
       val protoAnnotatedEntities = cfg.getProtoEntities
       val descriptorSource = buildDescriptorSource(protoDescriptors)
       if (autoRegister) {
-         descriptorSource.getFileDescriptors.foreach { case (name, contents) => metadataCache.put(name, new String(contents)) }
+         descriptorSource.getFileDescriptors.asScala.foreach { case (name, contents) => metadataCache.put(name, new String(contents)) }
       }
       serCtx.registerProtoFiles(descriptorSource)
 

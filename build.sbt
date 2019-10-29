@@ -15,6 +15,8 @@ lazy val serverZip = s"infinispan-server-$infinispanVersion.zip"
 lazy val ServerZipURL = s"https://downloads.jboss.org/infinispan/$infinispanVersion/$serverZip"
 lazy val ServerDownloadDir: String = System.getProperty("user.home")
 
+Test / logBuffered := false
+
 lazy val core = (project in file("."))
   .settings(commonSettings: _ *)
   .settings(Publishing.settings: _*)
@@ -86,11 +88,11 @@ lazy val examplesTwitter = (project in file("examples/twitter"))
   )
 
 def commonSettings = Seq(
-  scalaVersion := "2.11.8",
+  scalaVersion := "2.12.8",
   libraryDependencies ++= Seq(sparkCore, sparkStreaming, sparkSQL),
 
   scalacOptions ++= {
-    scalaVersion map { v =>
+    scalaVersion map { _ =>
       val baseFlags = Seq("-deprecation", "-encoding", "UTF-8", "-feature", "-unchecked", "-Yno-adapted-args", "-Ywarn-dead-code")
       baseFlags ++ Seq("-Xlint:_,-nullary-unit", "-Ywarn-unused", "-Ywarn-unused-import")
     }
