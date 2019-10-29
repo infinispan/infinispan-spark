@@ -18,7 +18,7 @@ abstract class RDDRetrievalTest extends FunSuite with Matchers {
 
       // Count by Key
       val map = infinispanRDD.countByKey()
-      map.forall { case (k, v) => v == 1 } shouldBe true
+      map.forall { case (_, v) => v == 1 } shouldBe true
 
       // Filter
       val filteredRDD = infinispanRDD.filter { case (_, v) => v.startsWith("a") }
@@ -48,7 +48,7 @@ abstract class RDDRetrievalTest extends FunSuite with Matchers {
       subtractedRDD.count shouldBe (getNumEntries - otherRDD.count)
 
       // Word count map reduce
-      val resultRDD = infinispanRDD.map { case (k, v) => v }.flatMap(_.split(" ")).map((_, 1)).reduceByKey(_ + _)
+      val resultRDD = infinispanRDD.map { case (_, v) => v }.flatMap(_.split(" ")).map((_, 1)).reduceByKey(_ + _)
       val firstWordCount = resultRDD.first()
       val count = infinispanRDD.values.flatMap(_.split(" ")).countByValue().get(firstWordCount._1).get
       count shouldBe firstWordCount._2

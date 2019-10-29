@@ -12,7 +12,7 @@ import org.infinispan.spark.examples.twitter.Sample.{getSparkConf, runAndExit, u
 import org.infinispan.spark.examples.util.TwitterDStream
 import org.infinispan.spark.stream._
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -50,7 +50,7 @@ object StreamConsumerScala {
 
       Repeat.every(5 seconds, {
          val keySet = cache.keySet()
-         val maxKey = keySet.max
+         val maxKey = keySet.asScala.max
          println(s"${keySet.size} tweets inserted in the cache")
          println(s"Last tweet:${Option(cache.get(maxKey)).map(_.getText).getOrElse("<no tweets received so far>")}")
          println()

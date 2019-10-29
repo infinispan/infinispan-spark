@@ -39,7 +39,7 @@ object StreamProducerScala {
 
       val infinispanStream = new InfinispanInputDStream[Long, Tweet](streamingContext, StorageLevel.MEMORY_ONLY, infinispanProperties)
 
-      val countryDStream = infinispanStream.transform(rdd => rdd.collect { case (k, v, _) => (v.getCountry, 1) }.reduceByKey(_ + _))
+      val countryDStream = infinispanStream.transform(rdd => rdd.collect { case (_, v, _) => (v.getCountry, 1) }.reduceByKey(_ + _))
 
       val lastMinuteDStream = countryDStream.reduceByKeyAndWindow(_ + _, Seconds(60))
 

@@ -20,7 +20,7 @@ object ObjectMapper {
       (from: Any, columns: Array[String]) => {
          if (columns.nonEmpty) {
             from match {
-               case f: Array[_] => new GenericRowWithSchema(from.asInstanceOf[Array[Any]], schema)
+               case _: Array[_] => new GenericRowWithSchema(from.asInstanceOf[Array[Any]], schema)
                case f: Any =>
                   val rowSchema = StructType(Array(schema(columns.head)))
                   new GenericRowWithSchema(Array(f), rowSchema)

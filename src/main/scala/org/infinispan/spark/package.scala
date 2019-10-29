@@ -9,13 +9,13 @@ import org.infinispan.commons.dataconversion.MediaType
 import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.rdd.RemoteCacheManagerBuilder
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 package object spark {
 
-   def getCacheTopology(cacheTopology: CacheTopologyInfo) = {
+   def getCacheTopology(cacheTopology: CacheTopologyInfo): String = {
       val segmentsPerServer = cacheTopology.getSegmentsPerServer
-      segmentsPerServer.keySet.map {
+      segmentsPerServer.keySet.asScala.map {
          case i: InetSocketAddress => s"${i.getHostString}:${i.getPort}"
       }.mkString(";")
    }
@@ -31,10 +31,10 @@ package object spark {
       }
    }
 
-   def getCache[K, V](config: ConnectorConfiguration, rcm: RemoteCacheManager) = {
+   def getCache[K, V](config: ConnectorConfiguration, rcm: RemoteCacheManager): RemoteCache[K, V] = {
       val cacheName = config.getCacheName
       val remoteCache = Option(cacheName).map(name => rcm.getCache[K, V](name)).getOrElse(rcm.getCache[K, V])
-      decorateWithFormat(config, remoteCache).asInstanceOf[RemoteCache[K,V]]
+      decorateWithFormat(config, remoteCache).asInstanceOf[RemoteCache[K, V]]
    }
 
    implicit class RDDExtensions[K, V](rdd: RDD[(K, V)]) extends Serializable {
@@ -44,7 +44,7 @@ package object spark {
             val remoteCacheManager = RemoteCacheManagerBuilder.create(configuration)
             val cache = getCache[K, V](configuration, remoteCacheManager)
             configuration.setServerList(getCacheTopology(cache.getCacheTopologyInfo))
-            ctx.addTaskCompletionListener(ctx => remoteCacheManager.stop())
+            ctx.addTaskCompletionListener[Unit](_ => remoteCacheManager.stop())
             new InfinispanWriteJob(configuration).runJob(iterator, ctx)
          }
          rdd.sparkContext.runJob(rdd, processor)
@@ -55,7 +55,7 @@ package object spark {
 
          def runJob(iterator: Iterator[(K, V)], ctx: TaskContext): Unit = {
             val remoteCacheManager = getCacheManager
-            ctx.addTaskCompletionListener { f => remoteCacheManager.stop() }
+            ctx.addTaskCompletionListener[Unit](_ => remoteCacheManager.stop())
             val cache = getCache[K, V](configuration, remoteCacheManager)
             val batchSize = configuration.getWriteBatchSize
             iterator.grouped(batchSize).foreach(kv => cache.putAll(mapAsJavaMap(kv.toMap)))

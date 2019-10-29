@@ -2,6 +2,7 @@ package org.infinispan.spark.suites
 
 import org.infinispan.client.hotrod.RemoteCache
 import org.infinispan.spark._
+import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.domain.Runner
 import org.infinispan.spark.test.TestingUtil._
 import org.infinispan.spark.test._
@@ -15,10 +16,10 @@ import scala.language.postfixOps
 @DoNotDiscover
 class RDDFailOverSuite extends FunSuite with Matchers with Spark with MultipleServers with FailOver {
 
-   val NumEntries = 1000
+   val NumEntries = 10000
 
-   override def getConfiguration = {
-      super.getConfiguration.setServerList("127.0.0.1:11222")
+   override def getConfiguration: ConnectorConfiguration = {
+      super.getConfiguration.setServerList("127.0.0.1:11222;127.0.0.1:12222")
         .setWriteBatchSize(5)
    }
 
@@ -31,7 +32,7 @@ class RDDFailOverSuite extends FunSuite with Matchers with Spark with MultipleSe
 
       val ispnIter = infinispanRDD.toLocalIterator
       var count = 0
-      for (i <- 1 to NumEntries / Cluster.getClusterSize) {
+      for (_ <- 1 to NumEntries / Cluster.getClusterSize) {
          ispnIter.next()
          count += 1
       }
@@ -46,7 +47,7 @@ class RDDFailOverSuite extends FunSuite with Matchers with Spark with MultipleSe
       count shouldBe NumEntries
    }
 
-   test("RDD write failover") {
+   ignore("RDD write failover (Re-test with 10.1.0.Final)") {
       val cache = getRemoteCache.asInstanceOf[RemoteCache[Int, Runner]]
       cache.clear()
 

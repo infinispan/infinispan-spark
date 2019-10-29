@@ -49,7 +49,7 @@ trait WordCache extends BeforeAndAfterAll {
 
    private def randomWordFrom(l: List[String]) = l(random.nextInt(l.size))
 
-   private def pickNouns = (for (i <- 0 to random.nextInt(3)) yield randomWordFrom(nouns)).mkString(" ")
+   private def pickNouns = (for (_ <- 0 to random.nextInt(3)) yield randomWordFrom(nouns)).mkString(" ")
 
    lazy val wordsCache = getRemoteCache[Int,String]
 
