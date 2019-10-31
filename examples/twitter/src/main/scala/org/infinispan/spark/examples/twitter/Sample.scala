@@ -2,6 +2,7 @@ package org.infinispan.spark.examples.twitter
 
 import org.apache.spark.SparkConf
 import org.apache.spark.streaming.StreamingContext
+import org.infinispan.spark.config.ConnectorConfiguration
 
 object Sample {
    def getSparkConf(appName: String): SparkConf = new SparkConf().setAppName(appName)
@@ -13,6 +14,11 @@ object Sample {
       context.awaitTerminationOrTimeout(durationSeconds)
       context.stop(stopSparkContext = false, stopGracefully = true)
       System.exit(0)
+   }
+
+   def getConnectorConf(host: String): ConnectorConfiguration = {
+      val configuration = new ConnectorConfiguration().setServerList(host).setCacheName("default")
+      configuration
    }
 
    def usage(className: String): Unit = usage(className, twitter = false)

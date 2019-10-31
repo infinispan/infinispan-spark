@@ -51,7 +51,7 @@ public class StreamConsumerJava {
       JavaStreamingContext javaStreamingContext = new JavaStreamingContext(conf, Seconds.apply(1));
 
       // Create connector configuration
-      ConnectorConfiguration configuration = new ConnectorConfiguration().setServerList(infinispanHost);
+      ConnectorConfiguration configuration = Sample.getConnectorConf(infinispanHost);
 
       JavaReceiverInputDStream<Tweet> twitterDStream = TwitterDStream.create(javaStreamingContext);
 
@@ -75,7 +75,7 @@ public class StreamConsumerJava {
 
       CacheStatus(String master) {
          Configuration configuration = new ConfigurationBuilder().addServers(master).create();
-         cache = new RemoteCacheManager(configuration).getCache();
+         cache = new RemoteCacheManager(configuration).getCache("default");
       }
 
       void printStatus(long value, TimeUnit timeUnit) {

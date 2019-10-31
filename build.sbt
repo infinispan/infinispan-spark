@@ -78,6 +78,7 @@ lazy val examplesTwitter = (project in file("examples/twitter"))
       case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
       case PathList("META-INF", "DEPENDENCIES.txt") => MergeStrategy.discard
       case PathList(ps@_*) if ps.last == "UnusedStubClass.class" => MergeStrategy.discard
+      case PathList(ps@_*) if ps.last == "blueprint.xml" => MergeStrategy.discard
       case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.discard
       case "features.xml" => MergeStrategy.first
       case x => val oldStrategy = (assemblyMergeStrategy in assembly).value

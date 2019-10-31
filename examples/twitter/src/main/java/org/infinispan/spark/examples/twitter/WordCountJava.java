@@ -58,7 +58,7 @@ public class WordCountJava {
       JavaSparkContext javaSparkContext = new JavaSparkContext(conf);
 
       // Create Connector config
-      ConnectorConfiguration configuration = new ConnectorConfiguration().setServerList(infinispanHost);
+      ConnectorConfiguration configuration = Sample.getConnectorConf(infinispanHost);
 
       // Create RDD from infinispan data
       JavaPairRDD<Long, Tweet> infinispanRDD = InfinispanJavaRDD.createInfinispanRDD(javaSparkContext, configuration);
