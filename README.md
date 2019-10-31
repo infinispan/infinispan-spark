@@ -600,8 +600,8 @@ export NEXUS_PASS=...
 
 #### Publishing a SNAPSHOT
 
-``` ./sbt publish ```
+``` ./sbt +publish ```
 
 #### Releasing
 
-``` ./sbt release ```
+``` ./sbt +release ```

@@ -1,6 +1,7 @@
 package org.infinispan.spark.rdd
 
 import java.net.SocketAddress
+import java.util
 
 import org.apache.spark.Partition
 import org.infinispan.client.hotrod.CacheTopologyInfo
@@ -66,10 +67,12 @@ class PerServerSplitter extends Splitter {
 
          val pps = properties.getServerPartitions
          result.toStream.flatMap { case (a, b) => cut(b.toSeq, pps).map((a, _)) }.zipWithIndex.map { case ((server, segs), idx) =>
-            new InfinispanPartition(idx, Location(server), segs.asJava, properties)
+            new InfinispanPartition(idx, Location(server), toJavaSet(segs), properties)
          }.toArray
       }
    }
+
+   private def toJavaSet(s: Set[Integer]) = new util.HashSet[Integer](s.asJava)
 
    private def cut[A](l: Seq[A], parts: Int) = (0 until parts).map { i => l.drop(i).sliding(1, parts).flatten.toSet }.filter(_.nonEmpty)
 

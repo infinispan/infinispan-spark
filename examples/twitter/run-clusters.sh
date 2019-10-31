@@ -29,7 +29,7 @@ Usage: ./run-clusters.sh [-i Infinispan version] [-s Spark version] [-c Scala ve
 
 	-s Apache Spark version (default=$DEFAULT_SPARK_VERSION)
 
-	-c Scala version that Spark was compiled with
+	-c Scala version that Spark was compiled (default=$DEFAULT_SCALA_VERSION)
 
     -h help
 

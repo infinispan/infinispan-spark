@@ -9,13 +9,13 @@ import org.infinispan.commons.dataconversion.MediaType
 import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.rdd.RemoteCacheManagerBuilder
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 package object spark {
 
    def getCacheTopology(cacheTopology: CacheTopologyInfo): String = {
       val segmentsPerServer = cacheTopology.getSegmentsPerServer
-      segmentsPerServer.keySet.asScala.map {
+      segmentsPerServer.keySet.map {
          case i: InetSocketAddress => s"${i.getHostString}:${i.getPort}"
       }.mkString(";")
    }

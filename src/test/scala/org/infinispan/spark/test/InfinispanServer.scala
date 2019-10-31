@@ -199,7 +199,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
       XMLUtils.addCacheTemplate(cacheContainer, configFile)
       cmd += "-c"
       cmd += serverConfig
-      setTrace(serverConfig, infinispanTrace)
+      setTrace(infinispanTrace)
       if (clustered) {
          cmd += StackConfig
          cmd += PreferIpv4Config
@@ -260,7 +260,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    }
 
 
-   def setTrace(configFile: String, categories: Option[String]): Unit = {
+   def setTrace(categories: Option[String]): Unit = {
       val logConfig = Paths.get(serverHome, DefaultConfigFolder, "logging.properties")
       val file = logConfig.toFile
 
