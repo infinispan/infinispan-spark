@@ -5,7 +5,6 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkContext
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.{Seconds, StreamingContext}
-import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.examples.twitter.Sample.{getSparkConf, runAndExit, usageStream}
 import org.infinispan.spark.examples.util.TwitterDStream
 import org.infinispan.spark.stream._
@@ -29,15 +28,15 @@ object StreamProducerScala {
 
       val streamingContext = new StreamingContext(sparkContext, Seconds(1))
 
-      val infinispanProperties = new ConnectorConfiguration().setServerList(infinispanHost)
+      val config = Sample.getConnectorConf(infinispanHost)
 
       val twitterDStream = TwitterDStream.create(streamingContext)
 
       val keyValueTweetStream = twitterDStream.map(s => (s.getId, s))
 
-      keyValueTweetStream.writeToInfinispan(infinispanProperties)
+      keyValueTweetStream.writeToInfinispan(config)
 
-      val infinispanStream = new InfinispanInputDStream[Long, Tweet](streamingContext, StorageLevel.MEMORY_ONLY, infinispanProperties)
+      val infinispanStream = new InfinispanInputDStream[Long, Tweet](streamingContext, StorageLevel.MEMORY_ONLY, config)
 
       val countryDStream = infinispanStream.transform(rdd => rdd.collect { case (_, v, _) => (v.getCountry, 1) }.reduceByKey(_ + _))
 

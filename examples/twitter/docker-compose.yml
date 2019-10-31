@@ -1,11 +1,13 @@
 infinispan1: 
-  image: jboss/infinispan-server:$INFINISPAN_VERSION
+  image: infinispan/server:$INFINISPAN_VERSION-1
   container_name: ispn-1
+  entrypoint: /opt/infinispan/bin/server.sh -b SITE_LOCAL
 infinispan2:
-  image: jboss/infinispan-server:$INFINISPAN_VERSION
+  image: infinispan/server:$INFINISPAN_VERSION-1
   container_name: ispn-2
+  entrypoint: /opt/infinispan/bin/server.sh -b SITE_LOCAL
 sparkMaster:
-  image: gustavonalle/spark:$SPARK_VERSION-jdk1.8
+  image: gustavonalle/spark:${SPARK_VERSION}_${SCALA_VERSION}
   container_name: sparkMaster
   ports:
     - "9080:9080"
@@ -13,7 +15,7 @@ sparkMaster:
   volumes:
     - $PWD/target:/usr/local/code:z
 sparkSlave:
-  image: gustavonalle/spark:$SPARK_VERSION
+  image: gustavonalle/spark:${SPARK_VERSION}_${SCALA_VERSION}
   container_name: sparkSlave
   ports:
     - "9082:9081"

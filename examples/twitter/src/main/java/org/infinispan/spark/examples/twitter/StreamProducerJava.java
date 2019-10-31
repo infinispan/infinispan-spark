@@ -1,9 +1,14 @@
 package org.infinispan.spark.examples.twitter;
 
+import static org.apache.spark.storage.StorageLevel.MEMORY_ONLY;
+import static org.infinispan.spark.examples.twitter.Sample.runAndExit;
+import static org.infinispan.spark.examples.twitter.Sample.usage;
+
+import java.util.List;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
-import static org.apache.spark.storage.StorageLevel.MEMORY_ONLY;
 import org.apache.spark.streaming.Duration;
 import org.apache.spark.streaming.Seconds;
 import org.apache.spark.streaming.api.java.JavaInputDStream;
@@ -11,16 +16,12 @@ import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaReceiverInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.infinispan.client.hotrod.event.ClientEvent;
-import static org.infinispan.spark.examples.twitter.Sample.runAndExit;
-import static org.infinispan.spark.examples.twitter.Sample.usage;
-
 import org.infinispan.spark.config.ConnectorConfiguration;
 import org.infinispan.spark.examples.util.TwitterDStream;
 import org.infinispan.spark.stream.InfinispanJavaDStream;
+
 import scala.Tuple2;
 import scala.Tuple3;
-
-import java.util.List;
 
 /**
  * This demo will start a DStream from Twitter and will save it to Infinispan after applying a transformation. At the
@@ -47,7 +48,7 @@ public class StreamProducerJava {
       JavaStreamingContext javaStreamingContext = new JavaStreamingContext(conf, Seconds.apply(1));
 
       // Create connector configuration
-      ConnectorConfiguration configuration = new ConnectorConfiguration().setServerList(infinispanHost);
+      ConnectorConfiguration configuration = Sample.getConnectorConf(infinispanHost);
 
       JavaReceiverInputDStream<Tweet> twitterDStream = TwitterDStream.create(javaStreamingContext);
 

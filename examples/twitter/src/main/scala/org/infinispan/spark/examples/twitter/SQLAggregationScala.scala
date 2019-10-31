@@ -3,7 +3,6 @@ package org.infinispan.spark.examples.twitter
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SparkSession
-import org.infinispan.spark.config.ConnectorConfiguration
 import org.infinispan.spark.examples.twitter.Sample.{getSparkConf, usage}
 import org.infinispan.spark.rdd.InfinispanRDD
 
@@ -30,7 +29,7 @@ object SQLAggregationScala {
       val sc = new SparkContext(conf)
 
       // Populate infinispan properties
-      val config = new ConnectorConfiguration().setServerList(infinispanHost)
+      val config = Sample.getConnectorConf(infinispanHost)
 
       // Create RDD from infinispan data
       val infinispanRDD = new InfinispanRDD[Long, Tweet](sc, config)
