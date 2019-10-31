@@ -79,7 +79,7 @@ class PartitionSuite extends FunSuite with Matchers {
    def runTest(numSegments: Int, segmentsPerServer: Map[SocketAddress, Set[Integer]])(partitions: Int) {
       runTest(numSegments, new CacheTopologyInfo {
          override def getSegmentsPerServer: util.Map[SocketAddress, util.Set[Integer]] =
-            mapAsJavaMap(segmentsPerServer.mapValues(setAsJavaSet))
+            segmentsPerServer.mapValues(_.asJava).asJava
 
          override def getNumSegments: Int = numSegments
 
@@ -110,7 +110,7 @@ class PartitionSuite extends FunSuite with Matchers {
       val serversStream = (Iterator continually servers).flatten
       val s = (for (i <- 0 until numSegments) yield int2Integer(i) -> serversStream.take(numOwners).toSet).toMap
       new CacheTopologyInfo {
-         override def getSegmentsPerServer: util.Map[SocketAddress, util.Set[Integer]] = mapAsJavaMap(reverse(s).mapValues(setAsJavaSet))
+         override def getSegmentsPerServer: util.Map[SocketAddress, util.Set[Integer]] = reverse(s).mapValues(_.asJava).asJava
 
          override def getNumSegments: Int = numSegments
 

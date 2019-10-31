@@ -91,7 +91,7 @@ lazy val examplesTwitter = (project in file("examples/twitter"))
 def commonSettings = Seq(
   scalaVersion := "2.12.8",
   libraryDependencies ++= Seq(sparkCore, sparkStreaming, sparkSQL),
-
+  crossScalaVersions := Seq("2.11.12", "2.12.8"),
   scalacOptions ++= {
     scalaVersion map { _ =>
       val baseFlags = Seq("-deprecation", "-encoding", "UTF-8", "-feature", "-unchecked", "-Yno-adapted-args", "-Ywarn-dead-code")
