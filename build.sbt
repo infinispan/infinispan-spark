@@ -23,7 +23,7 @@ lazy val core = (project in file("."))
   .settings(
     moduleName := "infinispan-spark",
     libraryDependencies ++= Seq(sparkCore, sparkStreaming, sparkSQL, sparkHive, hotRodClient, queryDSL, jcip,
-      junit, scalaTest, remoteQueryClient, protoStream, jbossMarshalling,
+       nettyHandler, nettyNative, junit, scalaTest, remoteQueryClient, protoStream, jbossMarshalling,
       infinispanCommons, shrinkWrap, infinispanCore, sl4jbridge, log4j, sttp, uJson),
     downloadServer := {
       val destination = new File(ServerDownloadDir, serverZip)

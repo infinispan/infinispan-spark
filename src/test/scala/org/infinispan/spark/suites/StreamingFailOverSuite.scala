@@ -42,7 +42,7 @@ class StreamingFailOverSuite extends FunSuite with SparkStream with MultipleServ
         .setCacheName(getCacheName)
    }
 
-   test("test stream consumer with failover") {
+   ignore("test stream consumer with failover") {
       val cache = getRemoteCache.asInstanceOf[RemoteCache[Int, String]]
       val stream = new TestInputDStream(ssc, of = Seq(1 -> "value1", 2 -> "value2", 3 -> "value3"), streamItemEvery = 100 millis)
 

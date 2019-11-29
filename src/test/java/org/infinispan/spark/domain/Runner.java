@@ -1,8 +1,13 @@
 package org.infinispan.spark.domain;
 
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
 
+import org.infinispan.commons.marshall.Externalizer;
+import org.infinispan.commons.marshall.SerializeWith;
 import org.infinispan.protostream.annotations.ProtoField;
 import org.infinispan.protostream.annotations.ProtoName;
 
@@ -10,6 +15,7 @@ import org.infinispan.protostream.annotations.ProtoName;
  * @author gustavonalle
  */
 @ProtoName("runner")
+@SerializeWith(Runner.RunnerExternalizer.class)
 public class Runner implements Serializable {
 
    private String name;
@@ -74,5 +80,24 @@ public class Runner implements Serializable {
             ", finishTimeSeconds=" + finishTimeSeconds +
             ", age=" + age +
             '}';
+   }
+
+   public static class RunnerExternalizer implements Externalizer<Runner> {
+      @Override
+      public void writeObject(ObjectOutput output, Runner object) throws IOException {
+         output.writeUTF(object.name);
+         output.writeBoolean(object.finished);
+         output.writeInt(object.finishTimeSeconds);
+         output.writeInt(object.age);
+      }
+
+      @Override
+      public Runner readObject(ObjectInput input) throws IOException {
+         String name = input.readUTF();
+         boolean finished = input.readBoolean();
+         int finishedSeconds = input.readInt();
+         int age = input.readInt();
+         return new Runner(name, finished, finishedSeconds, age);
+      }
    }
 }

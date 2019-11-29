@@ -1,9 +1,11 @@
 package org.infinispan.spark.test
 
-import java.io.Serializable
+import java.io.{ObjectInput, ObjectOutput, Serializable}
 
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder
 import org.infinispan.client.hotrod.{RemoteCache, RemoteCacheManager}
+import org.infinispan.commons.marshall.Externalizer
+import org.infinispan.commons.marshall.SerializeWith
 import org.infinispan.filter.{AbstractKeyValueFilterConverter, KeyValueFilterConverterFactory, NamedFactory}
 import org.infinispan.metadata.Metadata
 import org.infinispan.spark.domain._

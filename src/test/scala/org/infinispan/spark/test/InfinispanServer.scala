@@ -95,7 +95,10 @@ private[test] class Cluster(size: Int, location: String, cacheContainer: String)
    }
 
    def shutDown(): Unit = if (started) {
-      _servers.par.foreach(_.shutDown())
+      _servers.headOption.foreach(s => {
+         s.client.shutdownCluster()
+         s.waitExit()
+      })
       _servers.clear()
       started = false
    }
@@ -153,7 +156,8 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    }
 
    val DefaultCacheConfig: String = {
-      Js.Obj("distributed-cache" ->
+      val cacheType = if(clustered) "distributed-cache" else "local-cache"
+      Js.Obj(cacheType ->
         Js.Obj(
            "template" -> false,
            "statistics" -> true,
@@ -169,6 +173,8 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    private var launcher: Process = _
 
    lazy val client = InfinispanClient(Port + portOffSet, encrypted)
+
+   def getClient: InfinispanClient = client
 
    Runtime.getRuntime.addShutdownHook(new Thread {
       override def run(): Unit = Try(shutDown())
@@ -234,7 +240,11 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
    }
 
    def shutDown(): Unit = {
-      client.shutdown()
+      client.shutdownServer()
+      waitExit()
+   }
+
+   def waitExit(): Unit = {
       launcher.exitValue()
       launcher.destroy()
       started = false
@@ -266,7 +276,7 @@ private[test] class InfinispanServer(location: String, name: String, clustered: 
 
       def loadLoggingProperties = {
          val source = Source.fromFile(file)
-         val stringses = source.getLines().map(l => {
+         val stringses = source.getLines().filterNot(_.startsWith("#")).filterNot(_.isEmpty).map(l => {
             val keyValue = l.split("=")
             (keyValue(0), keyValue(1))
          }).toArray
@@ -304,7 +314,9 @@ sealed trait SingleNode {
 
    def isEncrypted: Boolean
 
-   lazy val server: InfinispanServer = new InfinispanServer(ServerPath, "standalone", clustered = false, isEncrypted, cacheContainer)
+   def name: String
+
+   lazy val server: InfinispanServer = new InfinispanServer(ServerPath, name, clustered = false, isEncrypted, cacheContainer)
 
    def getConfigFile: String
 
@@ -313,7 +325,7 @@ sealed trait SingleNode {
       start(getConfigFile)
    }
 
-   private def start(config: String): Unit = if (!server.isStarted) server.startAndWaitForCacheManager(config, 1, cacheContainer)
+   private def start(config: String): Unit = if (!server.isStarted) server.startAndWaitForCacheManager(config, 0, cacheContainer)
 
    def beforeStart(): Unit = {
       server.addEntities(TestEntities)
@@ -334,9 +346,11 @@ sealed trait SingleNode {
 }
 
 object SingleStandardNode extends SingleNode {
-   override def getConfigFile = "infinispan.xml"
+   override def getConfigFile = "infinispan-local.xml"
 
    override def isEncrypted = false
+
+   override def name: String = "standalone"
 }
 
 object SingleSecureNode extends SingleNode {
@@ -356,6 +370,8 @@ object SingleSecureNode extends SingleNode {
       Files.copy(f, serverConfig.resolve(getConfigFile), REPLACE_EXISTING)
       extraFiles.foreach(f => Files.copy(f, serverConfig.resolve(f.getFileName), REPLACE_EXISTING))
    }
+
+   override def name: String = "secure"
 }
 
 object Cluster {
