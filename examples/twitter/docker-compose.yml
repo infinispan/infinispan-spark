@@ -1,9 +1,9 @@
 infinispan1: 
-  image: infinispan/server:$INFINISPAN_VERSION-1
+  image: infinispan/server:$INFINISPAN_VERSION
   container_name: ispn-1
   entrypoint: /opt/infinispan/bin/server.sh -b SITE_LOCAL
 infinispan2:
-  image: infinispan/server:$INFINISPAN_VERSION-1
+  image: infinispan/server:$INFINISPAN_VERSION
   container_name: ispn-2
   entrypoint: /opt/infinispan/bin/server.sh -b SITE_LOCAL
 sparkMaster:

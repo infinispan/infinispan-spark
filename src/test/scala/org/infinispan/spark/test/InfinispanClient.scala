@@ -28,11 +28,19 @@ case class InfinispanClient(port: Int = 11222, tls: Boolean) {
 
    val baseURL = s"$protocol://localhost:$port/rest/v2"
 
-   def shutdown() = {
-      val request = basicRequest.get(uri"$baseURL/server/stop")
+   def shutdownServer(): Unit = {
+      shutDownResource("server")
+   }
+
+   def shutdownCluster(): Unit = {
+      shutDownResource("cluster")
+   }
+
+   private def shutDownResource(resource: String): Unit = {
+      val request = basicRequest.get(uri"$baseURL/$resource?action=stop")
       val response = request.send()
       val code = response.code.code
-      if (code < 200 || code > 204) throw new Exception(s"Failed to stop server, code $code")
+      if (code < 200 || code > 204) throw new Exception(s"Failed to stop $resource, code $code")
    }
 
    def cacheExists(name: String): Boolean = {

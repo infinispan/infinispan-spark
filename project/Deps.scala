@@ -6,6 +6,8 @@ object Deps {
    val hotRodClient = "org.infinispan" % "infinispan-client-hotrod" % infinispanVersion
    val queryDSL = "org.infinispan" % "infinispan-query-dsl" % infinispanVersion
    val remoteQueryClient = "org.infinispan" % "infinispan-remote-query-client" % infinispanVersion
+   val nettyHandler = "io.netty" % "netty-handler" % nettyVersion
+   val nettyNative = "io.netty" % "netty-transport-native-epoll" % nettyVersion classifier "linux-x86_64"
    val infinispanCommons = "org.infinispan" % "infinispan-commons" % infinispanVersion
    val jbossMarshalling = "org.infinispan" % "infinispan-jboss-marshalling" % infinispanVersion
    val protoStream = "org.infinispan.protostream" % "protostream" % protoStreamVersion

@@ -23,7 +23,7 @@ class RDDFailOverSuite extends FunSuite with Matchers with Spark with MultipleSe
         .setWriteBatchSize(5)
    }
 
-   test("RDD read failover") {
+   ignore("RDD read failover") {
       val cache = getRemoteCache.asInstanceOf[RemoteCache[Int, Runner]]
       cache.clear()
       (0 until NumEntries).foreach(id => cache.put(id, new Runner(s"name$id", true, id * 10, 20)))

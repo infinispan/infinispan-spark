@@ -2,9 +2,7 @@
         xmlns:server="urn:infinispan:server:10.0" xmlns="urn:infinispan:config:10.0"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
-  <cache-container name="default">
-    <transport stack="${infinispan.cluster.stack:tcp}" cluster="${infinispan.cluster.name}"/>
-  </cache-container>
+  <cache-container name="default" statistics="true"/>
 
   <server xmlns="urn:infinispan:server:10.0">
     <interfaces>

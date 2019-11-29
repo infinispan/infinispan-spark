@@ -61,6 +61,8 @@ class CacheLifecycleSuite extends FunSuite with RunnersCache with Spark with Mul
       cacheAdmin.exists("from-template") shouldBe false
       cacheAdmin.createFromTemplate("from-template", "replicated")
       cacheAdmin.exists("from-template") shouldBe true
+      cacheAdmin.delete("from-template")
+      cacheAdmin.exists("from-template") shouldBe false
 
    }
 
